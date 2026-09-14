@@ -1,0 +1,6 @@
+{
+  "name": "Social Network App",
+  "description": "Social network application with React frontend and Express server backend.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
