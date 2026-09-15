@@ -41,14 +41,14 @@ async function main() {
   const passwordHash = await bcrypt.hash('123456', 10);
 
   const usersRaw = [
-    { name: 'Nguyễn Minh Anh', username: 'minhanh', email: 'minhanh@demo.vn', role: 'admin', bio: 'Quản trị viên hệ thống 👑', workplace: 'Social Network App', location: 'Hà Nội' },
-    { name: 'Trần Quốc Bảo', username: 'quocbao', email: 'quocbao@demo.vn', bio: 'Yêu công nghệ & du lịch 🌍', workplace: 'FPT Software', location: 'Đà Nẵng' },
-    { name: 'Lê Thị Cẩm', username: 'camle', email: 'camle@demo.vn', bio: 'Đam mê nhiếp ảnh 📸', workplace: 'Studio Cẩm', location: 'TP. Hồ Chí Minh' },
-    { name: 'Phạm Đức Duy', username: 'ducduy', email: 'ducduy@demo.vn', bio: 'Sinh viên CNTT năm 4', workplace: 'Đại học Bách Khoa', location: 'Hà Nội' },
-    { name: 'Hoàng Thu Hà', username: 'thuha', email: 'thuha@demo.vn', bio: 'Thích đọc sách và cà phê ☕', workplace: 'NXB Trẻ', location: 'TP. Hồ Chí Minh' },
-    { name: 'Vũ Anh Khoa', username: 'anhkhoa', email: 'anhkhoa@demo.vn', bio: 'Streamer / Gamer 🎮', workplace: 'Freelancer', location: 'Cần Thơ' },
-    { name: 'Đặng Ngọc Linh', username: 'ngoclinh', email: 'ngoclinh@demo.vn', bio: 'Yêu ẩm thực, review đồ ăn 🍜', workplace: 'FoodTour VN', location: 'Đà Nẵng' },
-    { name: 'Bùi Gia Phúc', username: 'giaphuc', email: 'giaphuc@demo.vn', bio: 'Kỹ sư phần mềm', workplace: 'Viettel', location: 'Hà Nội' },
+    { name: 'Trần Xuân Hoàng', username: 'xuanhoang', email: 'xuanhoang@demo.vn', role: 'admin', bio: 'Quản trị viên hệ thống 👑', workplace: 'Social Network App', location: 'Hà Nội' },
+    { name: 'Trần Quốc Bảo', username: 'quocbao', email: 'user1@demo.vn', bio: 'Yêu công nghệ & du lịch 🌍', workplace: 'FPT Software', location: 'Đà Nẵng' },
+    { name: 'Lê Thị Cẩm', username: 'camle', email: 'user2@demo.vn', bio: 'Đam mê nhiếp ảnh 📸', workplace: 'Studio Cẩm', location: 'TP. Hồ Chí Minh' },
+    { name: 'Phạm Đức Duy', username: 'ducduy', email: 'user3@demo.vn', bio: 'Sinh viên CNTT năm 4', workplace: 'Đại học Bách Khoa', location: 'Hà Nội' },
+    { name: 'Hoàng Thu Hà', username: 'thuha', email: 'user4@demo.vn', bio: 'Thích đọc sách và cà phê ☕', workplace: 'NXB Trẻ', location: 'TP. Hồ Chí Minh' },
+    { name: 'Vũ Anh Khoa', username: 'anhkhoa', email: 'user5@demo.vn', bio: 'Streamer / Gamer 🎮', workplace: 'Freelancer', location: 'Cần Thơ' },
+    { name: 'Đặng Ngọc Linh', username: 'ngoclinh', email: 'user6@demo.vn', bio: 'Yêu ẩm thực, review đồ ăn 🍜', workplace: 'FoodTour VN', location: 'Đà Nẵng' },
+    { name: 'Bùi Gia Phúc', username: 'giaphuc', email: 'user7@demo.vn', bio: 'Kỹ sư phần mềm', workplace: 'Viettel', location: 'Hà Nội' },
   ];
 
   const users = await UserModel.insertMany(
