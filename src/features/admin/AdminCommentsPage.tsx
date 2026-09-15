@@ -138,9 +138,9 @@ export const AdminCommentsPage: React.FC = () => {
               <tr>
                 <th className="py-3.5 px-4">Tác giả</th>
                 <th className="py-3.5 px-4">Nội dung bình luận</th>
-                <th className="py-3.5 px-4">Thuộc bài viết</th>
-                <th className="py-3.5 px-4">Lượt thích</th>
-                <th className="py-3.5 px-4">Thời gian</th>
+                <th className="py-3.5 px-4 hidden lg:table-cell">Thuộc bài viết</th>
+                <th className="py-3.5 px-4 hidden md:table-cell">Lượt thích</th>
+                <th className="py-3.5 px-4 hidden md:table-cell">Thời gian</th>
                 <th className="py-3.5 px-4 text-right">Thao tác</th>
               </tr>
             </thead>
@@ -182,18 +182,18 @@ export const AdminCommentsPage: React.FC = () => {
                       </div>
                     </td>
 
-                    <td className="py-3.5 px-4 text-slate-400 max-w-[180px] truncate">
+                    <td className="py-3.5 px-4 text-slate-400 max-w-[180px] truncate hidden lg:table-cell">
                       {comment.postContent || `Bài #${comment.postId}`}
                     </td>
 
-                    <td className="py-3.5 px-4 text-slate-300">
+                    <td className="py-3.5 px-4 text-slate-300 hidden md:table-cell">
                       <span className="flex items-center gap-1">
                         <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />
                         <span>{comment.likes.length}</span>
                       </span>
                     </td>
 
-                    <td className="py-3.5 px-4 text-slate-400">{timeAgo(comment.createdAt)}</td>
+                    <td className="py-3.5 px-4 text-slate-400 hidden md:table-cell">{timeAgo(comment.createdAt)}</td>
 
                     <td className="py-3.5 px-4 text-right">
                       <button

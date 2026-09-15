@@ -249,6 +249,23 @@ export const SocialProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const onNewNotification = (notif: NotificationItem) => {
       setNotifications((prev) => [notif, ...prev]);
       showToast(`${notif.actor.name} ${notif.content}`, 'info');
+
+      // The recipient of a friend_accept notification is the original sender of the request —
+      // their sentFriendRequests entry never resolves on its own without this, so the profile
+      // button stays stuck on "Hủy lời mời" until a manual refresh.
+      if (notif.type === 'friend_accept') {
+        setSentFriendRequests((prev) => prev.filter((r) => r.receiverId !== notif.actor.id));
+        setFriends((prev) => (prev.some((f) => f.id === notif.actor.id) ? prev : [notif.actor, ...prev]));
+      }
+
+      // A brand-new incoming request isn't in `friendRequests` yet and the notification payload
+      // doesn't carry the request id needed to accept/reject it — refetch just that list.
+      if (notif.type === 'friend_request') {
+        api
+          .get<{ requests: FriendRequest[] }>('/friends/requests')
+          .then(({ requests }) => setFriendRequests(requests))
+          .catch(() => {});
+      }
     };
 
     socket.on('message:new', onNewMessage);
@@ -502,6 +519,11 @@ export const SocialProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     try {
       const { messages: msgs } = await api.get<{ messages: Message[] }>(`/messages/conversations/${conversationId}/messages`);
       setMessages((prev) => ({ ...prev, [conversationId]: msgs }));
+      // The GET above also marks every message as read server-side — mirror that here so the
+      // unread badge clears immediately instead of waiting for the next full conversations fetch.
+      setConversations((prev) =>
+        prev.map((c) => (c.id === conversationId ? { ...c, unreadCount: 0 } : c))
+      );
     } catch {
       // silent
     }

@@ -143,11 +143,11 @@ export const AdminUsersPage: React.FC = () => {
             <thead className="bg-slate-900/80 text-slate-400 uppercase tracking-wider font-mono text-[11px] border-b border-slate-800">
               <tr>
                 <th className="py-3.5 px-4">Người dùng</th>
-                <th className="py-3.5 px-4">Email</th>
+                <th className="py-3.5 px-4 hidden sm:table-cell">Email</th>
                 <th className="py-3.5 px-4">Vai trò</th>
-                <th className="py-3.5 px-4">Ngày tham gia</th>
-                <th className="py-3.5 px-4">Live</th>
-                <th className="py-3.5 px-4">Tài khoản</th>
+                <th className="py-3.5 px-4 hidden md:table-cell">Ngày tham gia</th>
+                <th className="py-3.5 px-4 hidden md:table-cell">Live</th>
+                <th className="py-3.5 px-4 hidden sm:table-cell">Tài khoản</th>
                 <th className="py-3.5 px-4 text-right">Thao tác</th>
               </tr>
             </thead>
@@ -178,7 +178,7 @@ export const AdminUsersPage: React.FC = () => {
                       </div>
                     </td>
 
-                    <td className="py-3.5 px-4 text-slate-400 font-mono">{user.email}</td>
+                    <td className="py-3.5 px-4 text-slate-400 font-mono hidden sm:table-cell">{user.email}</td>
 
                     <td className="py-3.5 px-4">
                       <span
@@ -202,9 +202,9 @@ export const AdminUsersPage: React.FC = () => {
                       </span>
                     </td>
 
-                    <td className="py-3.5 px-4 text-slate-400">{timeAgo(user.joinDate)}</td>
+                    <td className="py-3.5 px-4 text-slate-400 hidden md:table-cell">{timeAgo(user.joinDate)}</td>
 
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4 hidden md:table-cell">
                       {user.isOnline ? (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-800">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -218,7 +218,7 @@ export const AdminUsersPage: React.FC = () => {
                       )}
                     </td>
 
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4 hidden sm:table-cell">
                       {user.isBanned ? (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-950 text-rose-400 border border-rose-800">
                           <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />

@@ -69,10 +69,10 @@ export const AdminGroupsPage: React.FC = () => {
             <thead className="bg-slate-900/80 text-slate-400 uppercase tracking-wider font-mono text-[11px] border-b border-slate-800">
               <tr>
                 <th className="py-3.5 px-4">Tên nhóm</th>
-                <th className="py-3.5 px-4">Quyền riêng tư</th>
-                <th className="py-3.5 px-4">Thành viên</th>
-                <th className="py-3.5 px-4">Bài viết</th>
-                <th className="py-3.5 px-4">Ngày tạo</th>
+                <th className="py-3.5 px-4 hidden sm:table-cell">Quyền riêng tư</th>
+                <th className="py-3.5 px-4 hidden md:table-cell">Thành viên</th>
+                <th className="py-3.5 px-4 hidden md:table-cell">Bài viết</th>
+                <th className="py-3.5 px-4 hidden lg:table-cell">Ngày tạo</th>
                 <th className="py-3.5 px-4 text-right">Thao tác</th>
               </tr>
             </thead>
@@ -103,7 +103,7 @@ export const AdminGroupsPage: React.FC = () => {
                       </div>
                     </td>
 
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4 hidden sm:table-cell">
                       <span
                         className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold ${
                           group.privacy === 'public'
@@ -125,15 +125,15 @@ export const AdminGroupsPage: React.FC = () => {
                       </span>
                     </td>
 
-                    <td className="py-3.5 px-4 text-slate-300 font-mono">
+                    <td className="py-3.5 px-4 text-slate-300 font-mono hidden md:table-cell">
                       {group.membersCount} người
                     </td>
 
-                    <td className="py-3.5 px-4 text-slate-300 font-mono">
+                    <td className="py-3.5 px-4 text-slate-300 font-mono hidden md:table-cell">
                       {group.postsCount} bài
                     </td>
 
-                    <td className="py-3.5 px-4 text-slate-400">{timeAgo(group.createdAt)}</td>
+                    <td className="py-3.5 px-4 text-slate-400 hidden lg:table-cell">{timeAgo(group.createdAt)}</td>
 
                     <td className="py-3.5 px-4 text-right">
                       <div className="flex items-center justify-end gap-1.5">
