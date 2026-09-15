@@ -24,6 +24,7 @@ export function serializeUser(u: any) {
     followingCount: u.followingCount ?? 0,
     isOnline: u.isOnline,
     lastActive: u.lastActive ? new Date(u.lastActive).toISOString() : undefined,
+    isBot: !!u.isBot,
   };
 }
 

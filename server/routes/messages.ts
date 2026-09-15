@@ -16,6 +16,7 @@ import {
 } from '../schemas';
 import { serializeConversation, serializeMessage } from '../serialize';
 import { emitToUser } from '../realtime';
+import { getBotReply } from '../ai';
 
 const DEFAULT_GROUP_AVATARS = [
   'https://api.dicebear.com/7.x/shapes/svg?seed=group1',
@@ -35,6 +36,40 @@ function broadcastMessage(conversationId: string, participantIds: string[], send
     if (pid === senderId) continue;
     emitToUser(pid, 'message:new', { conversationId, message });
   }
+}
+
+// Fire-and-forget: if this 1-1 conversation's other participant is the AI bot, ask Gemini
+// for a reply using recent chat history, then save + broadcast it just like a normal message.
+// Never awaited by the caller — a slow/failed AI call must not delay the user's own send.
+async function maybeTriggerBotReply(conversationId: string, participantIds: string[], senderId: string) {
+  if (participantIds.length !== 2) return; // bot only replies in 1-1 chats
+  const otherId = participantIds.find((p) => p !== senderId);
+  if (!otherId) return;
+  const otherUser = await UserModel.findById(otherId);
+  if (!otherUser?.isBot) return;
+
+  const recent = await MessageModel.find({ conversation: conversationId, kind: 'text' })
+    .sort({ createdAt: -1 })
+    .limit(20)
+    .lean();
+  const history = recent
+    .reverse()
+    .filter((m) => m.content)
+    .map((m) => ({ role: m.sender?.toString() === otherId ? ('model' as const) : ('user' as const), text: m.content as string }));
+
+  const replyText = await getBotReply(history);
+  if (!replyText) return;
+
+  const botMessage = await MessageModel.create({
+    conversation: conversationId,
+    sender: otherId,
+    content: replyText,
+    readBy: [otherId],
+  });
+  await botMessage.populate('sender');
+  await ConversationModel.findByIdAndUpdate(conversationId, { updatedAt: new Date() });
+  const serialized = serializeMessage(botMessage, participantIds);
+  broadcastMessage(conversationId, participantIds, otherId, serialized);
 }
 
 async function postSystemMessage(conversationId: string, content: string) {
@@ -302,6 +337,9 @@ messagesRouter.post('/conversations/:id/messages', validateBody(sendMessageSchem
   const serialized1 = serializeMessage(message, participantIds1);
   broadcastMessage(req.params.id, participantIds1, req.userId, serialized1);
   res.json({ message: serialized1 });
+  maybeTriggerBotReply(req.params.id, participantIds1, req.userId!).catch((err) =>
+    console.error('[ai] bot reply failed:', err)
+  );
 });
 
 // Share a post into a conversation — stores only a reference (sharedPostId). The recipient's

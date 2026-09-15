@@ -15,6 +15,7 @@ import rateLimit from "express-rate-limit";
 import mongoSanitize from "express-mongo-sanitize";
 import { createServer as createViteServer } from "vite";
 import { connectDB } from "./server/db";
+import { ensureBotUser } from "./server/ai";
 import { openApiSpec } from "./server/swagger";
 import { requireAuth } from "./server/middleware/auth";
 import { setupRealtime } from "./server/realtime";
@@ -50,6 +51,7 @@ const ALLOWED_UPLOAD_MIME_TYPES = new Set([
 
 async function startServer() {
   await connectDB();
+  await ensureBotUser();
 
   const app = express();
   const PORT = Number(process.env.PORT) || 3000;

@@ -22,6 +22,7 @@ export interface User {
   isOnline?: boolean;
   lastActive?: string;
   blockedUserIds?: string[]; // only present on the currently logged-in user's own object
+  isBot?: boolean;
 }
 
 export interface Comment {

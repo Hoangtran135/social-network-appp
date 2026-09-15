@@ -130,7 +130,8 @@ export const MessagesPage: React.FC = () => {
     reactToMessage,
     showToast,
   } = useSocial();
-  const { currentUser } = useAuth();
+  const { currentUser, allUsers } = useAuth();
+  const aiBot = allUsers.find((u) => u.isBot);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [inputText, setInputText] = useState('');
@@ -378,6 +379,20 @@ export const MessagesPage: React.FC = () => {
           </button>
         </div>
 
+        {/* AI Assistant quick-access */}
+        {aiBot && (
+          <button
+            onClick={() => handleStartChatWithUser(aiBot)}
+            className="mx-3 mt-3 flex items-center gap-2.5 p-2.5 rounded-2xl bg-gradient-to-r from-indigo-50 to-blue-50 hover:from-indigo-100 hover:to-blue-100 border border-indigo-100 transition-colors text-left"
+          >
+            <img src={aiBot.avatar} alt={aiBot.name} className="w-9 h-9 rounded-full object-cover shrink-0" />
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-indigo-700 truncate">{aiBot.name}</p>
+              <p className="text-[11px] text-indigo-500 truncate">Trợ lý AI · Hỏi gì cũng được</p>
+            </div>
+          </button>
+        )}
+
         {/* Search */}
         <div className="p-3 border-b border-slate-100">
           <div className="relative">
@@ -486,10 +501,15 @@ export const MessagesPage: React.FC = () => {
               </div>
 
               <div>
-                <h3 className="font-bold text-sm text-slate-900 truncate">
-                  {activeConversation.isGroup ? activeConversation.name : partnerNickname || partner?.name}
+                <h3 className="font-bold text-sm text-slate-900 truncate flex items-center gap-1.5">
+                  <span>{activeConversation.isGroup ? activeConversation.name : partnerNickname || partner?.name}</span>
+                  {partner?.isBot && (
+                    <span className="px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-600 text-[9px] font-bold uppercase tracking-wide shrink-0">
+                      AI
+                    </span>
+                  )}
                 </h3>
-                {!activeConversation.isGroup && (
+                {!activeConversation.isGroup && !partner?.isBot && (
                   <span className={`text-[11px] font-medium ${partner?.isOnline ? 'text-emerald-600' : 'text-slate-400'}`}>
                     {partner?.isOnline
                       ? 'Đang hoạt động'
@@ -498,11 +518,14 @@ export const MessagesPage: React.FC = () => {
                       : 'Không hoạt động'}
                   </span>
                 )}
+                {partner?.isBot && (
+                  <span className="text-[11px] font-medium text-indigo-500">Luôn sẵn sàng trả lời</span>
+                )}
               </div>
             </div>
 
             <div className="flex items-center gap-1 text-slate-600">
-              {!activeConversation.isGroup && partner && (
+              {!activeConversation.isGroup && partner && !partner.isBot && (
                 <>
                   <button
                     onClick={() => startCall(partner, 'audio', activeConversation.id)}

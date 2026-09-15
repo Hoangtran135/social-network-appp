@@ -20,6 +20,7 @@ const userSchema = new Schema(
     resetTokenHash: { type: String },
     resetTokenExpires: { type: Date },
     blockedUsers: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+    isBot: { type: Boolean, default: false },
   },
   { timestamps: { createdAt: 'joinDate', updatedAt: false } }
 );
