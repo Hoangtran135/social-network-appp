@@ -30,6 +30,8 @@ import {
   SmilePlus,
   RotateCcw,
   Camera,
+  PhoneMissed,
+  PhoneOff,
 } from 'lucide-react';
 import { MessageAttachment, Post, User } from '../../types';
 import { uploadFile, formatFileSize, uploadImageFile } from '../../utils/upload';
@@ -550,6 +552,35 @@ export const MessagesPage: React.FC = () => {
                       <span className="text-[11px] text-slate-400 bg-slate-100 px-3 py-1 rounded-full text-center">
                         {msg.content}
                       </span>
+                    </div>
+                  );
+                }
+
+                if (msg.kind === 'call') {
+                  const isMineCall = msg.senderId === currentUser?.id;
+                  const isVideoCall = msg.callType === 'video';
+                  const mins = Math.floor((msg.callDurationSec || 0) / 60);
+                  const secs = (msg.callDurationSec || 0) % 60;
+                  const duration = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+                  const label =
+                    msg.callStatus === 'completed'
+                      ? `${isVideoCall ? 'Cuộc gọi video' : 'Cuộc gọi thoại'} · ${duration}`
+                      : msg.callStatus === 'missed'
+                      ? `${isMineCall ? 'Cuộc gọi nhỡ' : 'Bạn đã bỏ lỡ cuộc gọi'} ${isVideoCall ? 'video' : 'thoại'}`
+                      : `${isMineCall ? 'Đã hủy cuộc gọi' : 'Cuộc gọi bị từ chối'} ${isVideoCall ? 'video' : 'thoại'}`;
+                  const Icon = msg.callStatus === 'completed' ? (isVideoCall ? Video : Phone) : msg.callStatus === 'missed' ? PhoneMissed : PhoneOff;
+                  return (
+                    <div key={msg.id} className={`flex items-center gap-2 ${isMineCall ? 'justify-end' : 'justify-start'}`}>
+                      <div
+                        className={`flex items-center gap-2 px-3.5 py-2 rounded-full text-xs font-semibold ${
+                          msg.callStatus === 'completed'
+                            ? 'bg-slate-100 text-slate-600'
+                            : 'bg-rose-50 text-rose-600'
+                        }`}
+                      >
+                        <Icon className="w-4 h-4" />
+                        <span>{label}</span>
+                      </div>
                     </div>
                   );
                 }

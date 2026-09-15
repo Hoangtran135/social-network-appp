@@ -132,6 +132,13 @@ export const sharePostToConversationSchema = z.object({
   message: z.string().trim().max(2000).optional(),
 });
 
+export const logCallSchema = z.object({
+  toUserId: objectId,
+  callType: z.enum(['audio', 'video']),
+  status: z.enum(['completed', 'missed', 'rejected']),
+  durationSec: z.number().min(0).max(86400).default(0),
+});
+
 // --- Users ---
 export const changePasswordSchema = z.object({
   currentPassword: z.string().min(1).max(200),

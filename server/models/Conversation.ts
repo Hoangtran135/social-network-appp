@@ -16,9 +16,12 @@ const messageSchema = new Schema(
   {
     conversation: { type: Schema.Types.ObjectId, ref: 'Conversation', required: true },
     sender: { type: Schema.Types.ObjectId, ref: 'User' },
-    kind: { type: String, enum: ['text', 'system'], default: 'text' },
+    kind: { type: String, enum: ['text', 'system', 'call'], default: 'text' },
     content: { type: String, default: '' },
     sharedPostId: { type: Schema.Types.ObjectId, ref: 'Post' },
+    callType: { type: String, enum: ['audio', 'video'] },
+    callStatus: { type: String, enum: ['completed', 'missed', 'rejected'] },
+    callDurationSec: { type: Number },
     attachments: [
       {
         type: { type: String, enum: ['image', 'file'] },

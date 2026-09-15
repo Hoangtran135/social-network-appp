@@ -59,6 +59,12 @@ interface SocialContextType {
   loadMessages: (conversationId: string) => Promise<void>;
   sendMessage: (conversationId: string, content: string, attachments?: Message['attachments']) => Promise<void>;
   sharePostToConversation: (conversationId: string, postId: string, caption?: string) => Promise<void>;
+  logCallMessage: (
+    toUserId: string,
+    callType: 'audio' | 'video',
+    status: 'completed' | 'missed' | 'rejected',
+    durationSec: number
+  ) => Promise<void>;
   getOrCreateConversation: (participant: User) => Promise<string>;
   setConversationNickname: (conversationId: string, userId: string, nickname: string) => Promise<void>;
   createGroupChat: (participants: User[], name: string) => Promise<string>;
@@ -561,6 +567,28 @@ export const SocialProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
+  const logCallMessage = async (
+    toUserId: string,
+    callType: 'audio' | 'video',
+    status: 'completed' | 'missed' | 'rejected',
+    durationSec: number
+  ) => {
+    try {
+      const { conversationId, message } = await api.post<{ conversationId: string; message: Message }>(
+        '/messages/call-log',
+        { toUserId, callType, status, durationSec }
+      );
+      setMessages((prev) => ({ ...prev, [conversationId]: [...(prev[conversationId] || []), message] }));
+      setConversations((prev) =>
+        prev.some((c) => c.id === conversationId)
+          ? prev.map((c) => (c.id === conversationId ? { ...c, lastMessage: message, updatedAt: message.createdAt } : c))
+          : prev
+      );
+    } catch {
+      // silent — a missing call-log entry isn't worth interrupting the user over
+    }
+  };
+
   const getOrCreateConversation = async (participant: User): Promise<string> => {
     const existing = conversations.find((c) => !c.isGroup && c.participants.some((p) => p.id === participant.id));
     if (existing) return existing.id;
@@ -937,6 +965,7 @@ export const SocialProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         loadMessages,
         sendMessage,
         sharePostToConversation,
+        logCallMessage,
         getOrCreateConversation,
         setConversationNickname,
         createGroupChat,

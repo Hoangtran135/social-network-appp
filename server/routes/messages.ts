@@ -12,6 +12,7 @@ import {
   sendMessageSchema,
   reactMessageSchema,
   sharePostToConversationSchema,
+  logCallSchema,
 } from '../schemas';
 import { serializeConversation, serializeMessage } from '../serialize';
 import { emitToUser } from '../realtime';
@@ -398,3 +399,32 @@ messagesRouter.post(
     res.json({ message: serialized4 });
   }
 );
+
+// Logs a finished 1-1 call as a message in that pair's conversation (finding/creating it the
+// same way a normal 1-1 chat would) so both sides see a "📞 Cuộc gọi ... đã kết thúc" entry
+// with a duration/status icon instead of the call just silently disappearing.
+messagesRouter.post('/call-log', validateBody(logCallSchema), async (req: AuthedRequest, res) => {
+  const { toUserId, callType, status, durationSec } = req.body;
+  let conv = await ConversationModel.findOne({
+    isGroup: false,
+    participants: { $all: [req.userId, toUserId], $size: 2 },
+  });
+  if (!conv) {
+    conv = await ConversationModel.create({ isGroup: false, participants: [req.userId, toUserId] });
+  }
+  const message = await MessageModel.create({
+    conversation: conv._id,
+    sender: req.userId,
+    kind: 'call',
+    callType,
+    callStatus: status,
+    callDurationSec: durationSec,
+    readBy: [req.userId],
+  });
+  await message.populate('sender');
+  await ConversationModel.findByIdAndUpdate(conv._id, { updatedAt: new Date() });
+  const participantIds = [req.userId!, toUserId];
+  const serialized = serializeMessage(message, participantIds);
+  broadcastMessage(conv._id.toString(), participantIds, req.userId, serialized);
+  res.json({ conversationId: conv._id.toString(), message: serialized });
+});

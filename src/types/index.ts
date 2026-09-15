@@ -90,13 +90,16 @@ export interface MessageAttachment {
 export interface Message {
   id: string;
   conversationId: string;
-  kind?: 'text' | 'system';
+  kind?: 'text' | 'system' | 'call';
   senderId: string;
   senderName: string;
   senderAvatar: string;
   content: string;
   attachments?: MessageAttachment[];
   sharedPostId?: string;
+  callType?: 'audio' | 'video';
+  callStatus?: 'completed' | 'missed' | 'rejected';
+  callDurationSec?: number;
   createdAt: string;
   isRead: boolean;
   isRecalled?: boolean;

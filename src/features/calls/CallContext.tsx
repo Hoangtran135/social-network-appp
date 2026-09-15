@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
 import { useAuth } from '../auth/AuthContext';
+import { useSocial } from '../../context/SocialContext';
 import { getSocket, refreshSocketAuth } from '../../utils/socket';
 import { User } from '../../types';
 
@@ -35,6 +36,7 @@ const ICE_SERVERS: RTCConfiguration = {
 
 export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { currentUser, allUsers } = useAuth();
+  const { logCallMessage } = useSocial();
 
   const [activeCall, setActiveCall] = useState<ActiveCall | null>(null);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
@@ -48,6 +50,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const hasAcceptedRef = useRef(false);
   const activeCallRef = useRef<ActiveCall | null>(null);
   activeCallRef.current = activeCall;
+  const connectedAtRef = useRef<number | null>(null);
 
   const cleanup = useCallback(() => {
     pcRef.current?.close();
@@ -55,6 +58,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     pendingCandidatesRef.current = [];
     pendingOfferRef.current = null;
     hasAcceptedRef.current = false;
+    connectedAtRef.current = null;
     localStream?.getTracks().forEach((t) => t.stop());
     setLocalStream(null);
     setRemoteStream(null);
@@ -63,6 +67,21 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsCameraOff(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [localStream]);
+
+  // Only the side that actively triggers the end/reject logs the call — the other side
+  // receives the resulting message live over the socket, so logging on both ends would
+  // duplicate the "📞 Cuộc gọi..." entry in the chat.
+  const logAndCleanup = useCallback(
+    (status: 'completed' | 'missed' | 'rejected') => {
+      const call = activeCallRef.current;
+      if (call) {
+        const durationSec = connectedAtRef.current ? Math.round((Date.now() - connectedAtRef.current) / 1000) : 0;
+        logCallMessage(call.peerUser.id, call.callType, status, durationSec);
+      }
+      cleanup();
+    },
+    [cleanup, logCallMessage]
+  );
 
   const createPeerConnection = useCallback(
     (peerUserId: string) => {
@@ -124,6 +143,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
     getSocket().emit('call:answer', { toUserId: offerData.fromUserId, answer });
+    connectedAtRef.current = Date.now();
     setActiveCall((prev) => (prev ? { ...prev, status: 'connected' } : prev));
   }, []);
 
@@ -144,13 +164,13 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const rejectCall = () => {
     const call = activeCallRef.current;
     if (call) getSocket().emit('call:reject', { toUserId: call.peerUser.id });
-    cleanup();
+    logAndCleanup(call?.status === 'ringing-incoming' ? 'missed' : 'rejected');
   };
 
   const endCall = () => {
     const call = activeCallRef.current;
     if (call) getSocket().emit('call:end', { toUserId: call.peerUser.id });
-    cleanup();
+    logAndCleanup(connectedAtRef.current ? 'completed' : 'rejected');
   };
 
   const toggleMute = () => {
@@ -201,6 +221,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
       for (const c of pendingCandidatesRef.current) await pc.addIceCandidate(new RTCIceCandidate(c));
       pendingCandidatesRef.current = [];
+      connectedAtRef.current = Date.now();
       setActiveCall((prev) => (prev ? { ...prev, status: 'connected' } : prev));
     };
 
