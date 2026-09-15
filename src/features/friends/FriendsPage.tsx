@@ -46,10 +46,12 @@ export const FriendsPage: React.FC = () => {
     ...sentFriendRequests.map((r) => r.receiverId),
   ];
 
-  // Suggestions: users who are not current user, not friends, and have no pending requests
+  // Suggestions: users who are not current user, not friends, have no pending requests,
+  // and aren't the AI bot account (it's not a "friend" you add — it's a system chat entry).
   const suggestions = allUsers.filter(
     (u) =>
       u.id !== currentUser?.id &&
+      !u.isBot &&
       !friendIds.includes(u.id) &&
       !pendingUserIds.includes(u.id)
   );

@@ -1043,16 +1043,22 @@ export const MessagesPage: React.FC = () => {
               alt={partner.name}
               className="w-20 h-20 rounded-full object-cover border-2 border-white shadow-md mb-3"
             />
-            <Link to={`/profile/${partner.id}`} className="font-bold text-sm text-slate-900 hover:text-blue-600">
-              {partnerNickname || partner.name}
-            </Link>
+            {partner.isBot ? (
+              <span className="font-bold text-sm text-slate-900">{partnerNickname || partner.name}</span>
+            ) : (
+              <Link to={`/profile/${partner.id}`} className="font-bold text-sm text-slate-900 hover:text-blue-600">
+                {partnerNickname || partner.name}
+              </Link>
+            )}
             <span className="text-xs text-slate-400">@{partner.username}</span>
-            <Link
-              to={`/profile/${partner.id}`}
-              className="mt-3 w-full py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors"
-            >
-              Xem trang cá nhân
-            </Link>
+            {!partner.isBot && (
+              <Link
+                to={`/profile/${partner.id}`}
+                className="mt-3 w-full py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors"
+              >
+                Xem trang cá nhân
+              </Link>
+            )}
           </div>
 
           {/* Nicknames */}

@@ -62,7 +62,7 @@ export const GroupDetailPage: React.FC = () => {
   const myMembership = group.members.find((m) => m.userId === currentUser?.id);
   const canManageMembers = myMembership?.role === 'admin' || myMembership?.role === 'moderator';
   const invitableUsers = allUsers.filter(
-    (u) => u.id !== currentUser?.id && !group.members.some((m) => m.userId === u.id)
+    (u) => u.id !== currentUser?.id && !u.isBot && !group.members.some((m) => m.userId === u.id)
   );
 
   return (

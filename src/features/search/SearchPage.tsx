@@ -177,23 +177,37 @@ export const SearchPage: React.FC = () => {
                         key={user.id}
                         className="p-3 rounded-2xl bg-slate-50 border border-slate-100 hover:bg-slate-100/70 transition-colors flex items-center justify-between gap-3"
                       >
-                        <Link to={`/profile/${user.id}`} className="flex items-center gap-3 min-w-0">
-                          <img
-                            src={user.avatar}
-                            alt={user.name}
-                            className="w-12 h-12 rounded-2xl object-cover border border-slate-200"
-                          />
-                          <div className="min-w-0">
-                            <div className="font-bold text-xs sm:text-sm text-slate-900 truncate hover:text-blue-600">
-                              {user.name}
+                        {user.isBot ? (
+                          <div className="flex items-center gap-3 min-w-0">
+                            <img
+                              src={user.avatar}
+                              alt={user.name}
+                              className="w-12 h-12 rounded-2xl object-cover border border-slate-200"
+                            />
+                            <div className="min-w-0">
+                              <div className="font-bold text-xs sm:text-sm text-slate-900 truncate">{user.name}</div>
+                              <div className="text-[11px] text-slate-400 truncate">@{user.username}</div>
                             </div>
-                            <div className="text-[11px] text-slate-400 truncate">@{user.username}</div>
                           </div>
-                        </Link>
+                        ) : (
+                          <Link to={`/profile/${user.id}`} className="flex items-center gap-3 min-w-0">
+                            <img
+                              src={user.avatar}
+                              alt={user.name}
+                              className="w-12 h-12 rounded-2xl object-cover border border-slate-200"
+                            />
+                            <div className="min-w-0">
+                              <div className="font-bold text-xs sm:text-sm text-slate-900 truncate hover:text-blue-600">
+                                {user.name}
+                              </div>
+                              <div className="text-[11px] text-slate-400 truncate">@{user.username}</div>
+                            </div>
+                          </Link>
+                        )}
 
                         {!isSelf && (
                           <div className="shrink-0">
-                            {isFriend ? (
+                            {isFriend || user.isBot ? (
                               <button
                                 onClick={async () => {
                                   const convId = await getOrCreateConversation(user);

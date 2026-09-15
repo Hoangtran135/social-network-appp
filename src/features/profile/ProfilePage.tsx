@@ -80,6 +80,28 @@ export const ProfilePage: React.FC = () => {
     );
   }
 
+  // The AI bot has no profile page — it only exists inside chat.
+  if (targetUser.isBot) {
+    return (
+      <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 shadow-xs max-w-xl mx-auto my-12">
+        <div className="w-16 h-16 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center mx-auto mb-4">
+          <MessageCircle className="w-8 h-8" />
+        </div>
+        <h3 className="text-lg font-bold text-slate-800">Trợ Lý AI không có trang cá nhân</h3>
+        <p className="text-xs text-slate-500 mt-1 mb-6">Bạn có thể trò chuyện với Trợ Lý AI trong phần Tin nhắn.</p>
+        <button
+          onClick={async () => {
+            const convId = await getOrCreateConversation(targetUser);
+            navigate(`/messages/${convId}`);
+          }}
+          className="inline-flex items-center px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-500/20 transition-colors"
+        >
+          Mở trò chuyện với Trợ Lý AI
+        </button>
+      </div>
+    );
+  }
+
   const isOwner = currentUser?.id === targetUser.id;
   const isFriend = friends.some((f) => f.id === targetUser.id);
   const hasIncomingRequest = friendRequests.find((r) => r.sender.id === targetUser.id);
