@@ -1,0 +1,102 @@
+[
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f83"
+    },
+    "user": {
+      "$oid": "6aa8afa5cfdaee92a8130f44"
+    },
+    "actor": {
+      "$oid": "6aa8afa5cfdaee92a8130f45"
+    },
+    "type": "like",
+    "content": "đã thích bài viết của bạn",
+    "targetId": "6aa8afa5cfdaee92a8130f59",
+    "targetType": "post",
+    "isRead": false,
+    "createdAt": {
+      "$date": "2026-09-15T00:38:29.113Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f84"
+    },
+    "user": {
+      "$oid": "6aa8afa5cfdaee92a8130f46"
+    },
+    "actor": {
+      "$oid": "6aa8afa5cfdaee92a8130f44"
+    },
+    "type": "friend_accept",
+    "content": "đã chấp nhận lời mời kết bạn",
+    "targetId": "6aa8afa5cfdaee92a8130f46",
+    "targetType": "profile",
+    "isRead": false,
+    "createdAt": {
+      "$date": "2026-09-14T21:38:29.113Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f85"
+    },
+    "user": {
+      "$oid": "6aa8afa5cfdaee92a8130f44"
+    },
+    "actor": {
+      "$oid": "6aa8afa5cfdaee92a8130f49"
+    },
+    "type": "friend_request",
+    "content": "đã gửi lời mời kết bạn",
+    "targetId": "6aa8afa5cfdaee92a8130f49",
+    "targetType": "profile",
+    "isRead": false,
+    "createdAt": {
+      "$date": "2026-09-14T21:38:29.113Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f86"
+    },
+    "user": {
+      "$oid": "6aa8afa5cfdaee92a8130f47"
+    },
+    "actor": {
+      "$oid": "6aa8afa5cfdaee92a8130f4a"
+    },
+    "type": "friend_request",
+    "content": "đã gửi lời mời kết bạn",
+    "targetId": "6aa8afa5cfdaee92a8130f4a",
+    "targetType": "profile",
+    "isRead": false,
+    "createdAt": {
+      "$date": "2026-09-14T06:38:29.113Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f87"
+    },
+    "user": {
+      "$oid": "6aa8afa5cfdaee92a8130f45"
+    },
+    "actor": {
+      "$oid": "6aa8afa5cfdaee92a8130f46"
+    },
+    "type": "comment",
+    "content": "đã bình luận về bài viết của bạn",
+    "targetId": "6aa8afa5cfdaee92a8130f5a",
+    "targetType": "post",
+    "isRead": false,
+    "createdAt": {
+      "$date": "2026-09-14T18:38:29.113Z"
+    },
+    "__v": 0
+  }
+]

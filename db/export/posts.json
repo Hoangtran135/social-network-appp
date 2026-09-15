@@ -1,0 +1,613 @@
+[
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f59"
+    },
+    "author": {
+      "$oid": "6aa8afa5cfdaee92a8130f44"
+    },
+    "content": "Vừa hoàn thành xong dự án mới, cảm giác thật tuyệt vời! 🚀",
+    "images": [
+      "https://picsum.photos/seed/post-bao-1/800/600"
+    ],
+    "privacy": "public",
+    "taggedUsers": [],
+    "reactions": [
+      {
+        "type": "like",
+        "userId": {
+          "$oid": "6aa8afa5cfdaee92a8130f49"
+        }
+      },
+      {
+        "type": "like",
+        "userId": {
+          "$oid": "6aa8afa5cfdaee92a8130f47"
+        }
+      },
+      {
+        "type": "haha",
+        "userId": {
+          "$oid": "6aa8afa5cfdaee92a8130f4a"
+        }
+      },
+      {
+        "type": "haha",
+        "userId": {
+          "$oid": "6aa8afa5cfdaee92a8130f46"
+        }
+      }
+    ],
+    "savedBy": [],
+    "commentsCount": 1,
+    "sharesCount": 0,
+    "pinned": false,
+    "createdAt": {
+      "$date": "2026-09-12T02:38:29.051Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-15T02:38:29.075Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f5a"
+    },
+    "author": {
+      "$oid": "6aa8afa5cfdaee92a8130f45"
+    },
+    "content": "Bình minh trên vịnh Hạ Long đẹp không thể tả 🌅",
+    "images": [
+      "https://picsum.photos/seed/post-cam-1/800/600",
+      "https://picsum.photos/seed/post-cam-2/800/600"
+    ],
+    "privacy": "public",
+    "taggedUsers": [],
+    "reactions": [
+      {
+        "type": "haha",
+        "userId": {
+          "$oid": "6aa8afa5cfdaee92a8130f43"
+        }
+      }
+    ],
+    "savedBy": [],
+    "commentsCount": 1,
+    "sharesCount": 0,
+    "pinned": false,
+    "createdAt": {
+      "$date": "2026-09-15T02:38:29.056Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-15T02:38:29.086Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f5b"
+    },
+    "author": {
+      "$oid": "6aa8afa5cfdaee92a8130f46"
+    },
+    "content": "Ai có tài liệu học React hay không cho mình xin với ạ 😅",
+    "images": [],
+    "privacy": "public",
+    "taggedUsers": [],
+    "reactions": [],
+    "savedBy": [],
+    "commentsCount": 1,
+    "sharesCount": 0,
+    "pinned": false,
+    "createdAt": {
+      "$date": "2026-09-15T02:38:29.058Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-15T02:38:29.088Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f5c"
+    },
+    "author": {
+      "$oid": "6aa8afa5cfdaee92a8130f47"
+    },
+    "content": "Cuốn sách tuần này: \"Nhà giả kim\". Rất đáng đọc!",
+    "images": [
+      "https://picsum.photos/seed/post-ha-1/800/600"
+    ],
+    "privacy": "public",
+    "taggedUsers": [],
+    "reactions": [
+      {
+        "type": "love",
+        "userId": {
+          "$oid": "6aa8afa5cfdaee92a8130f4a"
+        }
+      }
+    ],
+    "savedBy": [],
+    "commentsCount": 1,
+    "sharesCount": 0,
+    "pinned": false,
+    "createdAt": {
+      "$date": "2026-09-12T02:38:29.060Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-15T02:38:29.091Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f5d"
+    },
+    "author": {
+      "$oid": "6aa8afa5cfdaee92a8130f48"
+    },
+    "content": "Tối nay live stream game mới lúc 20h, mọi người vào ủng hộ nha!",
+    "images": [
+      "https://picsum.photos/seed/post-khoa-1/800/600"
+    ],
+    "privacy": "public",
+    "taggedUsers": [],
+    "reactions": [
+      {
+        "type": "love",
+        "userId": {
+          "$oid": "6aa8afa5cfdaee92a8130f45"
+        }
+      },
+      {
+        "type": "like",
+        "userId": {
+          "$oid": "6aa8afa5cfdaee92a8130f44"
+        }
+      },
+      {
+        "type": "haha",
+        "userId": {
+          "$oid": "6aa8afa5cfdaee92a8130f43"
+        }
+      }
+    ],
+    "savedBy": [],
+    "commentsCount": 1,
+    "sharesCount": 0,
+    "pinned": false,
+    "createdAt": {
+      "$date": "2026-09-03T02:38:29.061Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-15T02:38:29.092Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f5e"
+    },
+    "author": {
+      "$oid": "6aa8afa5cfdaee92a8130f49"
+    },
+    "content": "Quán bún chả này ngon xuất sắc, phải thử ngay! 🍜",
+    "images": [
+      "https://picsum.photos/seed/post-linh-1/800/600"
+    ],
+    "privacy": "public",
+    "taggedUsers": [],
+    "reactions": [
+      {
+        "type": "like",
+        "userId": {
+          "$oid": "6aa8afa5cfdaee92a8130f4a"
+        }
+      },
+      {
+        "type": "like",
+        "userId": {
+          "$oid": "6aa8afa5cfdaee92a8130f46"
+        }
+      },
+      {
+        "type": "wow",
+        "userId": {
+          "$oid": "6aa8afa5cfdaee92a8130f43"
+        }
+      },
+      {
+        "type": "love",
+        "userId": {
+          "$oid": "6aa8afa5cfdaee92a8130f44"
+        }
+      }
+    ],
+    "savedBy": [],
+    "commentsCount": 1,
+    "sharesCount": 0,
+    "pinned": false,
+    "createdAt": {
+      "$date": "2026-09-05T02:38:29.062Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-15T02:38:29.094Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f5f"
+    },
+    "author": {
+      "$oid": "6aa8afa5cfdaee92a8130f4a"
+    },
+    "content": "Deploy thành công lên production sau một đêm thức trắng debug 😴",
+    "images": [],
+    "privacy": "public",
+    "taggedUsers": [],
+    "reactions": [
+      {
+        "type": "haha",
+        "userId": {
+          "$oid": "6aa8afa5cfdaee92a8130f43"
+        }
+      }
+    ],
+    "savedBy": [],
+    "commentsCount": 1,
+    "sharesCount": 0,
+    "pinned": false,
+    "createdAt": {
+      "$date": "2026-09-03T02:38:29.063Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-15T02:38:29.095Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f60"
+    },
+    "author": {
+      "$oid": "6aa8afa5cfdaee92a8130f44"
+    },
+    "content": "Cuối tuần này đi cà phê không mọi người?",
+    "images": [],
+    "privacy": "public",
+    "taggedUsers": [],
+    "reactions": [
+      {
+        "type": "like",
+        "userId": {
+          "$oid": "6aa8afa5cfdaee92a8130f46"
+        }
+      },
+      {
+        "type": "wow",
+        "userId": {
+          "$oid": "6aa8afa5cfdaee92a8130f48"
+        }
+      },
+      {
+        "type": "like",
+        "userId": {
+          "$oid": "6aa8afa5cfdaee92a8130f49"
+        }
+      },
+      {
+        "type": "like",
+        "userId": {
+          "$oid": "6aa8afa5cfdaee92a8130f47"
+        }
+      },
+      {
+        "type": "haha",
+        "userId": {
+          "$oid": "6aa8afa5cfdaee92a8130f43"
+        }
+      }
+    ],
+    "savedBy": [],
+    "commentsCount": 1,
+    "sharesCount": 0,
+    "pinned": false,
+    "createdAt": {
+      "$date": "2026-09-07T02:38:29.064Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-15T02:38:29.096Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f61"
+    },
+    "author": {
+      "$oid": "6aa8afa5cfdaee92a8130f45"
+    },
+    "content": "Bộ ảnh chụp tại Đà Lạt tuần trước, mọi người thấy sao? 📷",
+    "images": [
+      "https://picsum.photos/seed/post-cam-3/800/600",
+      "https://picsum.photos/seed/post-cam-4/800/600",
+      "https://picsum.photos/seed/post-cam-5/800/600"
+    ],
+    "privacy": "public",
+    "taggedUsers": [],
+    "reactions": [
+      {
+        "type": "love",
+        "userId": {
+          "$oid": "6aa8afa5cfdaee92a8130f4a"
+        }
+      },
+      {
+        "type": "love",
+        "userId": {
+          "$oid": "6aa8afa5cfdaee92a8130f46"
+        }
+      }
+    ],
+    "savedBy": [],
+    "commentsCount": 0,
+    "sharesCount": 0,
+    "pinned": false,
+    "createdAt": {
+      "$date": "2026-09-12T02:38:29.065Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-12T02:38:29.065Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f62"
+    },
+    "author": {
+      "$oid": "6aa8afa5cfdaee92a8130f43"
+    },
+    "content": "Chào mừng mọi người đến với Social Network App! Hãy cùng chia sẻ những khoảnh khắc đáng nhớ nhé.",
+    "images": [
+      "https://picsum.photos/seed/post-admin-1/800/600"
+    ],
+    "privacy": "public",
+    "taggedUsers": [],
+    "reactions": [
+      {
+        "type": "like",
+        "userId": {
+          "$oid": "6aa8afa5cfdaee92a8130f44"
+        }
+      },
+      {
+        "type": "love",
+        "userId": {
+          "$oid": "6aa8afa5cfdaee92a8130f4a"
+        }
+      }
+    ],
+    "savedBy": [],
+    "commentsCount": 0,
+    "sharesCount": 0,
+    "pinned": false,
+    "createdAt": {
+      "$date": "2026-09-03T02:38:29.067Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-03T02:38:29.067Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f63"
+    },
+    "author": {
+      "$oid": "6aa8afa5cfdaee92a8130f46"
+    },
+    "content": "Hôm nay bảo vệ đồ án, hồi hộp quá 😰",
+    "images": [],
+    "privacy": "public",
+    "taggedUsers": [],
+    "reactions": [
+      {
+        "type": "wow",
+        "userId": {
+          "$oid": "6aa8afa5cfdaee92a8130f43"
+        }
+      }
+    ],
+    "savedBy": [],
+    "commentsCount": 0,
+    "sharesCount": 0,
+    "pinned": false,
+    "createdAt": {
+      "$date": "2026-09-05T02:38:29.068Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-05T02:38:29.068Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f64"
+    },
+    "author": {
+      "$oid": "6aa8afa5cfdaee92a8130f47"
+    },
+    "content": "Trời Hà Nội vào thu đẹp thật sự",
+    "images": [
+      "https://picsum.photos/seed/post-ha-2/800/600"
+    ],
+    "privacy": "public",
+    "taggedUsers": [],
+    "reactions": [
+      {
+        "type": "like",
+        "userId": {
+          "$oid": "6aa8afa5cfdaee92a8130f43"
+        }
+      },
+      {
+        "type": "haha",
+        "userId": {
+          "$oid": "6aa8afa5cfdaee92a8130f48"
+        }
+      },
+      {
+        "type": "like",
+        "userId": {
+          "$oid": "6aa8afa5cfdaee92a8130f44"
+        }
+      },
+      {
+        "type": "haha",
+        "userId": {
+          "$oid": "6aa8afa5cfdaee92a8130f4a"
+        }
+      }
+    ],
+    "savedBy": [],
+    "commentsCount": 0,
+    "sharesCount": 0,
+    "pinned": false,
+    "createdAt": {
+      "$date": "2026-09-05T02:38:29.069Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-05T02:38:29.069Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f65"
+    },
+    "author": {
+      "$oid": "6aa8afa5cfdaee92a8130f48"
+    },
+    "content": "Vừa unbox bàn phím cơ mới, gõ sướng tay ghê 😍",
+    "images": [
+      "https://picsum.photos/seed/post-khoa-2/800/600"
+    ],
+    "privacy": "public",
+    "taggedUsers": [],
+    "reactions": [
+      {
+        "type": "wow",
+        "userId": {
+          "$oid": "6aa8afa5cfdaee92a8130f44"
+        }
+      }
+    ],
+    "savedBy": [],
+    "commentsCount": 0,
+    "sharesCount": 0,
+    "pinned": false,
+    "createdAt": {
+      "$date": "2026-09-13T02:38:29.069Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-13T02:38:29.069Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f66"
+    },
+    "author": {
+      "$oid": "6aa8afa5cfdaee92a8130f49"
+    },
+    "content": "Công thức nấu phở bò chuẩn vị Hà Nội, ai cần thì để lại comment nhé",
+    "images": [],
+    "privacy": "public",
+    "taggedUsers": [],
+    "reactions": [
+      {
+        "type": "love",
+        "userId": {
+          "$oid": "6aa8afa5cfdaee92a8130f43"
+        }
+      },
+      {
+        "type": "like",
+        "userId": {
+          "$oid": "6aa8afa5cfdaee92a8130f47"
+        }
+      }
+    ],
+    "savedBy": [],
+    "commentsCount": 0,
+    "sharesCount": 0,
+    "pinned": false,
+    "createdAt": {
+      "$date": "2026-09-08T02:38:29.070Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-08T02:38:29.070Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f67"
+    },
+    "author": {
+      "$oid": "6aa8afa5cfdaee92a8130f4a"
+    },
+    "content": "Học thêm được một pattern hay trong lúc code hôm nay: Repository Pattern",
+    "images": [],
+    "privacy": "public",
+    "taggedUsers": [],
+    "reactions": [
+      {
+        "type": "wow",
+        "userId": {
+          "$oid": "6aa8afa5cfdaee92a8130f45"
+        }
+      },
+      {
+        "type": "like",
+        "userId": {
+          "$oid": "6aa8afa5cfdaee92a8130f43"
+        }
+      },
+      {
+        "type": "haha",
+        "userId": {
+          "$oid": "6aa8afa5cfdaee92a8130f44"
+        }
+      },
+      {
+        "type": "love",
+        "userId": {
+          "$oid": "6aa8afa5cfdaee92a8130f48"
+        }
+      },
+      {
+        "type": "like",
+        "userId": {
+          "$oid": "6aa8afa5cfdaee92a8130f46"
+        }
+      }
+    ],
+    "savedBy": [],
+    "commentsCount": 0,
+    "sharesCount": 0,
+    "pinned": false,
+    "createdAt": {
+      "$date": "2026-09-13T02:38:29.071Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-13T02:38:29.071Z"
+    },
+    "__v": 0
+  }
+]

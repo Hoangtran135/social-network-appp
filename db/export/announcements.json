@@ -1,0 +1,17 @@
+[
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f8a"
+    },
+    "title": "Chào mừng đến với Social Network App",
+    "message": "Cảm ơn bạn đã tham gia! Hãy khám phá các tính năng đăng bài, kết bạn, nhắn tin và nhiều hơn nữa.",
+    "type": "info",
+    "createdBy": {
+      "$oid": "6aa8afa5cfdaee92a8130f43"
+    },
+    "createdAt": {
+      "$date": "2026-09-15T02:38:29.116Z"
+    },
+    "__v": 0
+  }
+]

@@ -1,0 +1,170 @@
+[
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f68"
+    },
+    "post": {
+      "$oid": "6aa8afa5cfdaee92a8130f59"
+    },
+    "author": {
+      "$oid": "6aa8afa5cfdaee92a8130f4a"
+    },
+    "content": "Chúc mừng nhé!",
+    "taggedUsers": [],
+    "likes": [],
+    "createdAt": {
+      "$date": "2026-09-08T02:38:29.073Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-08T02:38:29.073Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f69"
+    },
+    "post": {
+      "$oid": "6aa8afa5cfdaee92a8130f5a"
+    },
+    "author": {
+      "$oid": "6aa8afa5cfdaee92a8130f48"
+    },
+    "content": "Đẹp quá bạn ơi 😍",
+    "taggedUsers": [],
+    "likes": [],
+    "createdAt": {
+      "$date": "2026-09-10T02:38:29.085Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-10T02:38:29.085Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f6a"
+    },
+    "post": {
+      "$oid": "6aa8afa5cfdaee92a8130f5b"
+    },
+    "author": {
+      "$oid": "6aa8afa5cfdaee92a8130f46"
+    },
+    "content": "Haha đúng r đó",
+    "taggedUsers": [],
+    "likes": [],
+    "createdAt": {
+      "$date": "2026-09-09T02:38:29.087Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-09T02:38:29.087Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f6b"
+    },
+    "post": {
+      "$oid": "6aa8afa5cfdaee92a8130f5c"
+    },
+    "author": {
+      "$oid": "6aa8afa5cfdaee92a8130f44"
+    },
+    "content": "Chúc mừng nhé!",
+    "taggedUsers": [],
+    "likes": [],
+    "createdAt": {
+      "$date": "2026-09-10T02:38:29.089Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-10T02:38:29.089Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f6c"
+    },
+    "post": {
+      "$oid": "6aa8afa5cfdaee92a8130f5d"
+    },
+    "author": {
+      "$oid": "6aa8afa5cfdaee92a8130f44"
+    },
+    "content": "Đẹp quá bạn ơi 😍",
+    "taggedUsers": [],
+    "likes": [],
+    "createdAt": {
+      "$date": "2026-09-10T02:38:29.092Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-10T02:38:29.092Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f6d"
+    },
+    "post": {
+      "$oid": "6aa8afa5cfdaee92a8130f5e"
+    },
+    "author": {
+      "$oid": "6aa8afa5cfdaee92a8130f4a"
+    },
+    "content": "Cho mình xin info với",
+    "taggedUsers": [],
+    "likes": [],
+    "createdAt": {
+      "$date": "2026-09-09T02:38:29.093Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-09T02:38:29.093Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f6e"
+    },
+    "post": {
+      "$oid": "6aa8afa5cfdaee92a8130f5f"
+    },
+    "author": {
+      "$oid": "6aa8afa5cfdaee92a8130f43"
+    },
+    "content": "Chúc mừng nhé!",
+    "taggedUsers": [],
+    "likes": [],
+    "createdAt": {
+      "$date": "2026-09-15T02:38:29.094Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-15T02:38:29.094Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f6f"
+    },
+    "post": {
+      "$oid": "6aa8afa5cfdaee92a8130f60"
+    },
+    "author": {
+      "$oid": "6aa8afa5cfdaee92a8130f47"
+    },
+    "content": "Haha đúng r đó",
+    "taggedUsers": [],
+    "likes": [],
+    "createdAt": {
+      "$date": "2026-09-06T02:38:29.096Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-06T02:38:29.096Z"
+    },
+    "__v": 0
+  }
+]

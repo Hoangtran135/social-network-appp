@@ -1,0 +1,92 @@
+[
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f70"
+    },
+    "user": {
+      "$oid": "6aa8afa5cfdaee92a8130f44"
+    },
+    "type": "image",
+    "mediaUrl": "https://picsum.photos/seed/story-quocbao/720/1280",
+    "expiresAt": {
+      "$date": "2026-09-16T02:38:29.097Z"
+    },
+    "createdAt": {
+      "$date": "2026-09-15T02:38:29.097Z"
+    },
+    "viewers": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f71"
+    },
+    "user": {
+      "$oid": "6aa8afa5cfdaee92a8130f45"
+    },
+    "type": "image",
+    "mediaUrl": "https://picsum.photos/seed/story-camle/720/1280",
+    "expiresAt": {
+      "$date": "2026-09-16T00:38:29.097Z"
+    },
+    "createdAt": {
+      "$date": "2026-09-15T00:38:29.097Z"
+    },
+    "viewers": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f72"
+    },
+    "user": {
+      "$oid": "6aa8afa5cfdaee92a8130f47"
+    },
+    "type": "image",
+    "mediaUrl": "https://picsum.photos/seed/story-thuha/720/1280",
+    "expiresAt": {
+      "$date": "2026-09-15T22:38:29.097Z"
+    },
+    "createdAt": {
+      "$date": "2026-09-14T22:38:29.097Z"
+    },
+    "viewers": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f73"
+    },
+    "user": {
+      "$oid": "6aa8afa5cfdaee92a8130f48"
+    },
+    "type": "image",
+    "mediaUrl": "https://picsum.photos/seed/story-anhkhoa/720/1280",
+    "expiresAt": {
+      "$date": "2026-09-15T20:38:29.097Z"
+    },
+    "createdAt": {
+      "$date": "2026-09-14T20:38:29.097Z"
+    },
+    "viewers": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f74"
+    },
+    "user": {
+      "$oid": "6aa8afa5cfdaee92a8130f49"
+    },
+    "type": "image",
+    "mediaUrl": "https://picsum.photos/seed/story-ngoclinh/720/1280",
+    "expiresAt": {
+      "$date": "2026-09-15T18:38:29.097Z"
+    },
+    "createdAt": {
+      "$date": "2026-09-14T18:38:29.097Z"
+    },
+    "viewers": [],
+    "__v": 0
+  }
+]

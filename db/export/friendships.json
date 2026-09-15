@@ -1,0 +1,137 @@
+[
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f4b"
+    },
+    "userA": {
+      "$oid": "6aa8afa5cfdaee92a8130f44"
+    },
+    "userB": {
+      "$oid": "6aa8afa5cfdaee92a8130f45"
+    },
+    "createdAt": {
+      "$date": "2026-09-09T02:38:29.039Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f4c"
+    },
+    "userA": {
+      "$oid": "6aa8afa5cfdaee92a8130f44"
+    },
+    "userB": {
+      "$oid": "6aa8afa5cfdaee92a8130f46"
+    },
+    "createdAt": {
+      "$date": "2026-09-04T02:38:29.039Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f4d"
+    },
+    "userA": {
+      "$oid": "6aa8afa5cfdaee92a8130f44"
+    },
+    "userB": {
+      "$oid": "6aa8afa5cfdaee92a8130f4a"
+    },
+    "createdAt": {
+      "$date": "2026-08-25T02:38:29.039Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f4e"
+    },
+    "userA": {
+      "$oid": "6aa8afa5cfdaee92a8130f45"
+    },
+    "userB": {
+      "$oid": "6aa8afa5cfdaee92a8130f47"
+    },
+    "createdAt": {
+      "$date": "2026-07-19T02:38:29.039Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f4f"
+    },
+    "userA": {
+      "$oid": "6aa8afa5cfdaee92a8130f45"
+    },
+    "userB": {
+      "$oid": "6aa8afa5cfdaee92a8130f49"
+    },
+    "createdAt": {
+      "$date": "2026-08-02T02:38:29.039Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f50"
+    },
+    "userA": {
+      "$oid": "6aa8afa5cfdaee92a8130f46"
+    },
+    "userB": {
+      "$oid": "6aa8afa5cfdaee92a8130f48"
+    },
+    "createdAt": {
+      "$date": "2026-07-31T02:38:29.039Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f51"
+    },
+    "userA": {
+      "$oid": "6aa8afa5cfdaee92a8130f46"
+    },
+    "userB": {
+      "$oid": "6aa8afa5cfdaee92a8130f4a"
+    },
+    "createdAt": {
+      "$date": "2026-08-23T02:38:29.039Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f52"
+    },
+    "userA": {
+      "$oid": "6aa8afa5cfdaee92a8130f47"
+    },
+    "userB": {
+      "$oid": "6aa8afa5cfdaee92a8130f49"
+    },
+    "createdAt": {
+      "$date": "2026-07-23T02:38:29.039Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f53"
+    },
+    "userA": {
+      "$oid": "6aa8afa5cfdaee92a8130f48"
+    },
+    "userB": {
+      "$oid": "6aa8afa5cfdaee92a8130f43"
+    },
+    "createdAt": {
+      "$date": "2026-07-29T02:38:29.039Z"
+    },
+    "__v": 0
+  }
+]

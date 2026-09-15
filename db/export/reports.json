@@ -1,0 +1,36 @@
+[
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f88"
+    },
+    "reporter": {
+      "$oid": "6aa8afa5cfdaee92a8130f47"
+    },
+    "targetType": "post",
+    "targetId": "6aa8afa5cfdaee92a8130f5b",
+    "targetName": "Bài viết của Phạm Đức Duy",
+    "reason": "Nội dung spam",
+    "status": "pending",
+    "createdAt": {
+      "$date": "2026-09-14T16:38:29.115Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f89"
+    },
+    "reporter": {
+      "$oid": "6aa8afa5cfdaee92a8130f44"
+    },
+    "targetType": "user",
+    "targetId": "6aa8afa5cfdaee92a8130f48",
+    "targetName": "Vũ Anh Khoa",
+    "reason": "Ngôn từ không phù hợp",
+    "status": "pending",
+    "createdAt": {
+      "$date": "2026-09-13T20:38:29.115Z"
+    },
+    "__v": 0
+  }
+]

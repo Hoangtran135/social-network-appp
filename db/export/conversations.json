@@ -1,0 +1,62 @@
+[
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f75"
+    },
+    "isGroup": false,
+    "participants": [
+      {
+        "$oid": "6aa8afa5cfdaee92a8130f44"
+      },
+      {
+        "$oid": "6aa8afa5cfdaee92a8130f45"
+      }
+    ],
+    "admins": [],
+    "nicknames": {},
+    "updatedAt": {
+      "$date": "2026-09-15T02:38:29.101Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f7a"
+    },
+    "isGroup": false,
+    "participants": [
+      {
+        "$oid": "6aa8afa5cfdaee92a8130f46"
+      },
+      {
+        "$oid": "6aa8afa5cfdaee92a8130f4a"
+      }
+    ],
+    "admins": [],
+    "nicknames": {},
+    "updatedAt": {
+      "$date": "2026-09-15T02:38:29.107Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f7f"
+    },
+    "isGroup": false,
+    "participants": [
+      {
+        "$oid": "6aa8afa5cfdaee92a8130f47"
+      },
+      {
+        "$oid": "6aa8afa5cfdaee92a8130f49"
+      }
+    ],
+    "admins": [],
+    "nicknames": {},
+    "updatedAt": {
+      "$date": "2026-09-15T02:38:29.111Z"
+    },
+    "__v": 0
+  }
+]

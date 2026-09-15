@@ -1,0 +1,32 @@
+[
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f54"
+    },
+    "sender": {
+      "$oid": "6aa8afa5cfdaee92a8130f49"
+    },
+    "receiver": {
+      "$oid": "6aa8afa5cfdaee92a8130f44"
+    },
+    "createdAt": {
+      "$date": "2026-09-14T21:38:29.043Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f55"
+    },
+    "sender": {
+      "$oid": "6aa8afa5cfdaee92a8130f4a"
+    },
+    "receiver": {
+      "$oid": "6aa8afa5cfdaee92a8130f47"
+    },
+    "createdAt": {
+      "$date": "2026-09-14T06:38:29.043Z"
+    },
+    "__v": 0
+  }
+]

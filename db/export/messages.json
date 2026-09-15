@@ -1,0 +1,277 @@
+[
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f76"
+    },
+    "conversation": {
+      "$oid": "6aa8afa5cfdaee92a8130f75"
+    },
+    "sender": {
+      "$oid": "6aa8afa5cfdaee92a8130f44"
+    },
+    "kind": "text",
+    "content": "Chào Cẩm, dạo này khoẻ không?",
+    "readBy": [
+      {
+        "$oid": "6aa8afa5cfdaee92a8130f44"
+      }
+    ],
+    "isRecalled": false,
+    "reactions": {},
+    "createdAt": {
+      "$date": "2026-09-14T22:38:29.102Z"
+    },
+    "attachments": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f77"
+    },
+    "conversation": {
+      "$oid": "6aa8afa5cfdaee92a8130f75"
+    },
+    "sender": {
+      "$oid": "6aa8afa5cfdaee92a8130f45"
+    },
+    "kind": "text",
+    "content": "Mình khoẻ, cảm ơn Bảo nhé!",
+    "readBy": [
+      {
+        "$oid": "6aa8afa5cfdaee92a8130f45"
+      }
+    ],
+    "isRecalled": false,
+    "reactions": {},
+    "createdAt": {
+      "$date": "2026-09-14T23:38:29.103Z"
+    },
+    "attachments": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f78"
+    },
+    "conversation": {
+      "$oid": "6aa8afa5cfdaee92a8130f75"
+    },
+    "sender": {
+      "$oid": "6aa8afa5cfdaee92a8130f44"
+    },
+    "kind": "text",
+    "content": "Cuối tuần đi cà phê không?",
+    "readBy": [
+      {
+        "$oid": "6aa8afa5cfdaee92a8130f44"
+      }
+    ],
+    "isRecalled": false,
+    "reactions": {},
+    "createdAt": {
+      "$date": "2026-09-15T00:38:29.104Z"
+    },
+    "attachments": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f79"
+    },
+    "conversation": {
+      "$oid": "6aa8afa5cfdaee92a8130f75"
+    },
+    "sender": {
+      "$oid": "6aa8afa5cfdaee92a8130f45"
+    },
+    "kind": "text",
+    "content": "Ok luôn, mấy giờ vậy?",
+    "readBy": [
+      {
+        "$oid": "6aa8afa5cfdaee92a8130f45"
+      }
+    ],
+    "isRecalled": false,
+    "reactions": {},
+    "createdAt": {
+      "$date": "2026-09-15T01:38:29.105Z"
+    },
+    "attachments": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f7b"
+    },
+    "conversation": {
+      "$oid": "6aa8afa5cfdaee92a8130f7a"
+    },
+    "sender": {
+      "$oid": "6aa8afa5cfdaee92a8130f46"
+    },
+    "kind": "text",
+    "content": "Anh ơi cho em hỏi về deploy với ạ",
+    "readBy": [
+      {
+        "$oid": "6aa8afa5cfdaee92a8130f46"
+      }
+    ],
+    "isRecalled": false,
+    "reactions": {},
+    "createdAt": {
+      "$date": "2026-09-14T22:38:29.108Z"
+    },
+    "attachments": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f7c"
+    },
+    "conversation": {
+      "$oid": "6aa8afa5cfdaee92a8130f7a"
+    },
+    "sender": {
+      "$oid": "6aa8afa5cfdaee92a8130f4a"
+    },
+    "kind": "text",
+    "content": "Ừ em cứ hỏi",
+    "readBy": [
+      {
+        "$oid": "6aa8afa5cfdaee92a8130f4a"
+      }
+    ],
+    "isRecalled": false,
+    "reactions": {},
+    "createdAt": {
+      "$date": "2026-09-14T23:38:29.109Z"
+    },
+    "attachments": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f7d"
+    },
+    "conversation": {
+      "$oid": "6aa8afa5cfdaee92a8130f7a"
+    },
+    "sender": {
+      "$oid": "6aa8afa5cfdaee92a8130f46"
+    },
+    "kind": "text",
+    "content": "Sao build bị lỗi esbuild anh nhỉ?",
+    "readBy": [
+      {
+        "$oid": "6aa8afa5cfdaee92a8130f46"
+      }
+    ],
+    "isRecalled": false,
+    "reactions": {},
+    "createdAt": {
+      "$date": "2026-09-15T00:38:29.109Z"
+    },
+    "attachments": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f7e"
+    },
+    "conversation": {
+      "$oid": "6aa8afa5cfdaee92a8130f7a"
+    },
+    "sender": {
+      "$oid": "6aa8afa5cfdaee92a8130f4a"
+    },
+    "kind": "text",
+    "content": "Để anh xem log giúp em",
+    "readBy": [
+      {
+        "$oid": "6aa8afa5cfdaee92a8130f4a"
+      }
+    ],
+    "isRecalled": false,
+    "reactions": {},
+    "createdAt": {
+      "$date": "2026-09-15T01:38:29.110Z"
+    },
+    "attachments": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f80"
+    },
+    "conversation": {
+      "$oid": "6aa8afa5cfdaee92a8130f7f"
+    },
+    "sender": {
+      "$oid": "6aa8afa5cfdaee92a8130f47"
+    },
+    "kind": "text",
+    "content": "Quán bún chả hôm trước ở đâu vậy?",
+    "readBy": [
+      {
+        "$oid": "6aa8afa5cfdaee92a8130f47"
+      }
+    ],
+    "isRecalled": false,
+    "reactions": {},
+    "createdAt": {
+      "$date": "2026-09-14T23:38:29.111Z"
+    },
+    "attachments": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f81"
+    },
+    "conversation": {
+      "$oid": "6aa8afa5cfdaee92a8130f7f"
+    },
+    "sender": {
+      "$oid": "6aa8afa5cfdaee92a8130f49"
+    },
+    "kind": "text",
+    "content": "Để mình gửi địa chỉ cho",
+    "readBy": [
+      {
+        "$oid": "6aa8afa5cfdaee92a8130f49"
+      }
+    ],
+    "isRecalled": false,
+    "reactions": {},
+    "createdAt": {
+      "$date": "2026-09-15T00:38:29.112Z"
+    },
+    "attachments": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa8afa5cfdaee92a8130f82"
+    },
+    "conversation": {
+      "$oid": "6aa8afa5cfdaee92a8130f7f"
+    },
+    "sender": {
+      "$oid": "6aa8afa5cfdaee92a8130f47"
+    },
+    "kind": "text",
+    "content": "Cảm ơn Linh nhiều nha 🥰",
+    "readBy": [
+      {
+        "$oid": "6aa8afa5cfdaee92a8130f47"
+      }
+    ],
+    "isRecalled": false,
+    "reactions": {},
+    "createdAt": {
+      "$date": "2026-09-15T01:38:29.113Z"
+    },
+    "attachments": [],
+    "__v": 0
+  }
+]
