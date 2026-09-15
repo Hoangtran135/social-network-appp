@@ -1,11 +1,14 @@
-# One-command deploy for the Windows VPS. Run from the project folder:
-#   .\deploy-windows.ps1
+# One-command deploy for the Windows VPS. Run from anywhere — it cd's to the
+# project root itself:
+#   .\deploy\deploy-windows.ps1
 #
 # Mirrors deploy.sh (git pull -> npm ci -> build -> pm2 restart) but stops the PM2
 # process first — on Windows the running dist/server.cjs keeps native modules
 # (like @rollup's win32 binary) file-locked, which makes `npm ci` fail with EPERM
 # while the app is still up. Also hard-fails on any step's exit code instead of
 # silently reloading PM2 on a stale build when a step errors.
+
+Set-Location (Join-Path $PSScriptRoot "..")
 
 function Step($msg) { Write-Host "==> $msg" -ForegroundColor Cyan }
 function FailIfError($msg) {

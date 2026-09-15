@@ -82,7 +82,7 @@ Dự án có sẵn script tự động hoá phần lớn quá trình triển kha
 
 2. Cài môi trường hệ thống (Node.js, PM2, Nginx, firewall, SSL) — chạy 1 lần:
    ```bash
-   sudo bash setup-vps.sh your-domain.com
+   sudo bash deploy/setup-vps.sh your-domain.com
    ```
 
 3. Cài MongoDB trên VPS (xem hướng dẫn chính thức tại mongodb.com, hoặc dùng MongoDB Atlas thay vì tự host).
@@ -91,7 +91,7 @@ Dự án có sẵn script tự động hoá phần lớn quá trình triển kha
 
 5. Build & chạy bằng PM2:
    ```bash
-   bash deploy.sh
+   bash deploy/deploy.sh
    ```
 
 6. (Tuỳ chọn) Import data demo:
@@ -104,7 +104,7 @@ Dự án có sẵn script tự động hoá phần lớn quá trình triển kha
    sudo certbot --nginx -d your-domain.com -d www.your-domain.com
    ```
 
-Các lần deploy sau chỉ cần chạy lại `bash deploy.sh` — script tự `git pull`, build lại và reload PM2 không downtime.
+Các lần deploy sau chỉ cần chạy lại `bash deploy/deploy.sh` — script tự `git pull`, build lại và reload PM2 không downtime.
 
 ## Tính năng chính
 
