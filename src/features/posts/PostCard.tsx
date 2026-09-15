@@ -540,30 +540,32 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
               className="w-8 h-8 rounded-full object-cover shrink-0 mt-0.5"
             />
             <div className="flex-1 min-w-0">
-              <div className="relative bg-white rounded-2xl border border-slate-200 p-2 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-400">
-                <textarea
-                  ref={commentTextareaRef}
-                  rows={2}
-                  value={commentText}
-                  onChange={handleCommentTextChange}
-                  placeholder="Viết bình luận của bạn... (gõ @ để gắn thẻ)"
-                  className="w-full text-xs text-slate-800 placeholder-slate-400 resize-none focus:outline-none border-none p-1"
-                />
+              <div className="bg-white rounded-2xl border border-slate-200 p-2 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-400">
+                <div className="relative">
+                  <textarea
+                    ref={commentTextareaRef}
+                    rows={2}
+                    value={commentText}
+                    onChange={handleCommentTextChange}
+                    placeholder="Viết bình luận của bạn... (gõ @ để gắn thẻ)"
+                    className="w-full text-xs text-slate-800 placeholder-slate-400 resize-none focus:outline-none border-none p-1"
+                  />
 
-                {commentMentionState && commentMentionMatches.length > 0 && (
-                  <div className="absolute left-0 top-full mt-1 w-56 max-h-40 overflow-y-auto bg-white rounded-xl shadow-xl border border-slate-200 py-1 z-20">
-                    {commentMentionMatches.map((f) => (
-                      <div
-                        key={f.id}
-                        onClick={() => handleSelectCommentMention(f)}
-                        className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-blue-50 cursor-pointer"
-                      >
-                        <img src={f.avatar} alt={f.name} className="w-6 h-6 rounded-full object-cover" />
-                        <span className="text-[11px] font-semibold text-slate-700 truncate">{f.name}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                  {commentMentionState && commentMentionMatches.length > 0 && (
+                    <div className="absolute left-0 top-full mt-1 w-56 max-h-40 overflow-y-auto bg-white rounded-xl shadow-xl border border-slate-200 py-1 z-20">
+                      {commentMentionMatches.map((f) => (
+                        <div
+                          key={f.id}
+                          onClick={() => handleSelectCommentMention(f)}
+                          className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-blue-50 cursor-pointer"
+                        >
+                          <img src={f.avatar} alt={f.name} className="w-6 h-6 rounded-full object-cover" />
+                          <span className="text-[11px] font-semibold text-slate-700 truncate">{f.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
                 {commentImage && (
                   <div className="relative inline-block mt-2 rounded-lg overflow-hidden border border-slate-200">
