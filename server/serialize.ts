@@ -81,6 +81,7 @@ export function serializeStory(s: any) {
     id: id(s),
     user: serializeUser(s.user),
     type: s.type,
+    privacy: s.privacy || 'public',
     mediaUrl: s.mediaUrl,
     textContent: s.textContent,
     backgroundGradient: s.backgroundGradient,

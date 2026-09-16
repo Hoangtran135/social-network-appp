@@ -40,7 +40,13 @@ interface SocialContextType {
 
   // Stories
   stories: Story[];
-  createStory: (type: 'image' | 'text', mediaUrl?: string, textContent?: string, backgroundGradient?: string) => Promise<void>;
+  createStory: (
+    type: 'image' | 'text',
+    mediaUrl?: string,
+    textContent?: string,
+    backgroundGradient?: string,
+    privacy?: 'public' | 'friends'
+  ) => Promise<void>;
   viewStory: (storyId: string) => Promise<void>;
   deleteStory: (storyId: string) => Promise<void>;
 
@@ -455,9 +461,21 @@ export const SocialProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   // --- STORIES ---
-  const createStory = async (type: 'image' | 'text', mediaUrl?: string, textContent?: string, backgroundGradient?: string) => {
+  const createStory = async (
+    type: 'image' | 'text',
+    mediaUrl?: string,
+    textContent?: string,
+    backgroundGradient?: string,
+    privacy?: 'public' | 'friends'
+  ) => {
     try {
-      const { story } = await api.post<{ story: Story }>('/stories', { type, mediaUrl, textContent, backgroundGradient });
+      const { story } = await api.post<{ story: Story }>('/stories', {
+        type,
+        mediaUrl,
+        textContent,
+        backgroundGradient,
+        privacy,
+      });
       setStories((prev) => [story, ...prev]);
       showToast('Đã đăng Story mới!', 'success');
     } catch (err) {

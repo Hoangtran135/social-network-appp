@@ -4,6 +4,7 @@ const storySchema = new Schema(
   {
     user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     type: { type: String, enum: ['image', 'text'], required: true },
+    privacy: { type: String, enum: ['public', 'friends'], default: 'public' },
     mediaUrl: { type: String },
     textContent: { type: String },
     backgroundGradient: { type: String },

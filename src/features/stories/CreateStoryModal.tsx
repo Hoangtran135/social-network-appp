@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useSocial } from '../../context/SocialContext';
 import { useAuth } from '../auth/AuthContext';
-import { X, Image as ImageIcon, Type, Sparkles, Loader2 } from 'lucide-react';
+import { X, Image as ImageIcon, Type, Sparkles, Loader2, Globe, Users } from 'lucide-react';
 import { uploadImageFile } from '../../utils/upload';
 
 interface CreateStoryModalProps {
@@ -26,6 +26,7 @@ export const CreateStoryModal: React.FC<CreateStoryModalProps> = ({ isOpen, onCl
   const [textContent, setTextContent] = useState('');
   const [mediaUrl, setMediaUrl] = useState('');
   const [selectedGradient, setSelectedGradient] = useState(GRADIENTS[0]);
+  const [privacy, setPrivacy] = useState<'public' | 'friends'>('public');
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -53,12 +54,14 @@ export const CreateStoryModal: React.FC<CreateStoryModalProps> = ({ isOpen, onCl
       storyType,
       storyType === 'image' ? mediaUrl.trim() : undefined,
       storyType === 'text' ? textContent.trim() : undefined,
-      selectedGradient
+      selectedGradient,
+      privacy
     );
 
     // Reset
     setTextContent('');
     setMediaUrl('');
+    setPrivacy('public');
     onClose();
   };
 
@@ -196,6 +199,38 @@ export const CreateStoryModal: React.FC<CreateStoryModalProps> = ({ isOpen, onCl
               </div>
             </>
           )}
+
+          <div>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
+              Ai có thể xem tin này?
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setPrivacy('public')}
+                className={`flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-all ${
+                  privacy === 'public'
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                <Globe className="w-3.5 h-3.5" />
+                <span>Công khai</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPrivacy('friends')}
+                className={`flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-all ${
+                  privacy === 'friends'
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                <Users className="w-3.5 h-3.5" />
+                <span>Chỉ bạn bè</span>
+              </button>
+            </div>
+          </div>
 
           <div className="flex gap-2 pt-2">
             <button

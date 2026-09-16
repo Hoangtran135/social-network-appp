@@ -66,6 +66,7 @@ export interface Story {
   id: string;
   user: User;
   type: 'image' | 'text';
+  privacy: 'public' | 'friends';
   mediaUrl?: string;
   textContent?: string;
   backgroundGradient?: string;

@@ -1,23 +1,38 @@
 import { Router } from 'express';
 import { StoryModel } from '../models/Story';
+import { FriendshipModel } from '../models/FriendRequest';
 import { requireAuth, AuthedRequest } from '../middleware/auth';
 import { serializeStory } from '../serialize';
 
 export const storiesRouter = Router();
 storiesRouter.use(requireAuth);
 
-storiesRouter.get('/', async (_req, res) => {
+storiesRouter.get('/', async (req: AuthedRequest, res) => {
   const stories = await StoryModel.find({ expiresAt: { $gt: new Date() } })
     .sort({ createdAt: -1 })
     .populate(['user', 'viewers.user']);
-  res.json({ stories: stories.map(serializeStory) });
+
+  const friendEdges = await FriendshipModel.find({ $or: [{ userA: req.userId }, { userB: req.userId }] });
+  const friendIds = new Set(
+    friendEdges.map((e: any) => (e.userA.toString() === req.userId ? e.userB.toString() : e.userA.toString()))
+  );
+
+  const visible = stories.filter((s: any) => {
+    const authorId = s.user._id ? s.user._id.toString() : s.user.toString();
+    if (authorId === req.userId) return true;
+    if (s.privacy === 'friends') return friendIds.has(authorId);
+    return true; // public
+  });
+
+  res.json({ stories: visible.map(serializeStory) });
 });
 
 storiesRouter.post('/', async (req: AuthedRequest, res) => {
-  const { type, mediaUrl, textContent, backgroundGradient } = req.body;
+  const { type, mediaUrl, textContent, backgroundGradient, privacy } = req.body;
   const story = await StoryModel.create({
     user: req.userId,
     type,
+    privacy: privacy === 'friends' ? 'friends' : 'public',
     mediaUrl,
     textContent,
     backgroundGradient,
