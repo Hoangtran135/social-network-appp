@@ -99,7 +99,11 @@ export function serializeStory(s: any) {
 export function serializeGroup(
   g: any,
   viewerId?: string,
-  meta?: { hasPendingJoinRequest?: boolean; joinRequestsCount?: number }
+  meta?: {
+    hasPendingJoinRequest?: boolean;
+    joinRequestsCount?: number;
+    hasPendingInvite?: boolean;
+  }
 ) {
   const viewerMembership = viewerId
     ? (g.members || []).find((m: any) => id(m.user) === viewerId)
@@ -124,6 +128,7 @@ export function serializeGroup(
     isAdmin: viewerMembership?.role === 'admin',
     hasPendingJoinRequest: !!meta?.hasPendingJoinRequest,
     joinRequestsCount: meta?.joinRequestsCount,
+    hasPendingInvite: !!meta?.hasPendingInvite,
     rules: g.rules,
     createdAt: g.createdAt,
   };

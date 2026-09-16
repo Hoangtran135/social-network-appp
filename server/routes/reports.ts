@@ -3,7 +3,8 @@ import { ReportModel, AnnouncementModel } from '../models/Report';
 import { UserModel } from '../models/User';
 import { NotificationModel } from '../models/Notification';
 import { requireAuth, AuthedRequest } from '../middleware/auth';
-import { serializeReport, serializeAnnouncement } from '../serialize';
+import { serializeReport, serializeAnnouncement, serializeNotification } from '../serialize';
+import { emitToUser } from '../realtime';
 
 export const reportsRouter = Router();
 reportsRouter.use(requireAuth);
@@ -68,17 +69,24 @@ reportsRouter.post('/announcements', async (req: AuthedRequest, res) => {
   const ann = await AnnouncementModel.create({ title, message, type, createdBy: req.userId });
   await ann.populate('createdBy');
 
-  const allUsers = await UserModel.find({}, '_id');
-  await NotificationModel.insertMany(
+  const [allUsers, actorUser] = await Promise.all([UserModel.find({}, '_id'), UserModel.findById(req.userId)]);
+  const created = await NotificationModel.insertMany(
     allUsers.map((u) => ({
       user: u._id,
       actor: req.userId,
-      type: 'system',
+      type: 'moderation',
       content: `${title}: ${message}`,
       targetType: 'system',
       targetId: ann._id.toString(),
     }))
   );
+
+  // insertMany doesn't populate refs — push the same already-loaded admin doc into each
+  // notification in memory so every recipient gets the live push instantly, not just on next fetch.
+  for (const notif of created) {
+    const withActor = { ...(notif as any).toObject(), actor: actorUser };
+    emitToUser((notif as any).user.toString(), 'notification:new', serializeNotification(withActor));
+  }
 
   res.json({ announcement: serializeAnnouncement(ann) });
 });

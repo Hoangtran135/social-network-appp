@@ -38,6 +38,7 @@ export const GroupDetailPage: React.FC = () => {
   const {
     groups,
     posts,
+    friends,
     inviteToGroup,
     removeGroupMember,
     promoteGroupMember,
@@ -45,8 +46,10 @@ export const GroupDetailPage: React.FC = () => {
     fetchGroupJoinRequests,
     approveGroupJoinRequest,
     rejectGroupJoinRequest,
+    acceptGroupInvite,
+    declineGroupInvite,
   } = useSocial();
-  const { currentUser, allUsers } = useAuth();
+  const { currentUser } = useAuth();
   const confirm = useConfirm();
 
   const [activeTab, setActiveTab] = useState<GroupDetailTab>('feed');
@@ -95,9 +98,8 @@ export const GroupDetailPage: React.FC = () => {
     .filter((p) => p.groupId === group.id)
     .sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
 
-  const invitableUsers = allUsers.filter(
-    (u) => u.id !== currentUser?.id && !u.isBot && !group.members.some((m) => m.userId === u.id)
-  );
+  // Can only invite friends — a stranger has to request to join instead.
+  const invitableUsers = friends.filter((u) => !group.members.some((m) => m.userId === u.id));
 
   return (
     <div className="w-full max-w-4xl min-w-0">
@@ -109,6 +111,29 @@ export const GroupDetailPage: React.FC = () => {
           <ArrowLeft className="w-4 h-4" />
           <span>Quay lại danh sách nhóm</span>
         </Link>
+
+        {/* Pending group-invite confirmation banner */}
+        {group.hasPendingInvite && (
+          <div className="mb-4 p-4 bg-indigo-50 border border-indigo-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <p className="text-xs sm:text-sm text-indigo-800 font-semibold">
+              Bạn được mời tham gia nhóm "{group.name}". Xác nhận để tham gia?
+            </p>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={() => acceptGroupInvite(group.id)}
+                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-colors"
+              >
+                Chấp nhận
+              </button>
+              <button
+                onClick={() => declineGroupInvite(group.id)}
+                className="px-4 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-600 text-xs font-bold border border-slate-200 transition-colors"
+              >
+                Từ chối
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Group Header Hero */}
         <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-xs mb-6">
@@ -222,7 +247,9 @@ export const GroupDetailPage: React.FC = () => {
             ) : (
               <div className="bg-blue-50/80 border border-blue-200 rounded-2xl p-4 text-center mb-5">
                 <p className="text-xs text-blue-800 font-semibold mb-2">
-                  {group.hasPendingJoinRequest
+                  {group.hasPendingInvite
+                    ? 'Bạn được mời tham gia nhóm này — xác nhận ở trên để đăng bài và tương tác.'
+                    : group.hasPendingJoinRequest
                     ? 'Yêu cầu tham gia của bạn đang chờ trưởng nhóm duyệt.'
                     : 'Bạn cần tham gia nhóm để có thể đăng bài và tương tác cùng các thành viên.'}
                 </p>
@@ -320,10 +347,10 @@ export const GroupDetailPage: React.FC = () => {
             {showInviteList && canManageMembers && (
               <div className="mb-5 p-4 bg-slate-50 rounded-2xl border border-slate-200">
                 <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
-                  Mời người dùng vào nhóm
+                  Mời bạn bè vào nhóm
                 </h4>
                 {invitableUsers.length === 0 ? (
-                  <p className="text-xs text-slate-400">Không còn ai để mời.</p>
+                  <p className="text-xs text-slate-400">Bạn bè của bạn đã ở trong nhóm hoặc bạn chưa có bạn bè nào để mời.</p>
                 ) : (
                   <div className="space-y-2">
                     {invitableUsers.map((u) => (

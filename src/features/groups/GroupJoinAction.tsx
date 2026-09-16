@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useSocial } from '../../context/SocialContext';
 import { useConfirm } from '../../common/ConfirmDialogProvider';
 import { Group } from '../../types';
-import { Check, ChevronDown, Clock, LogOut } from 'lucide-react';
+import { Check, ChevronDown, Clock, LogOut, X, Mail } from 'lucide-react';
 
 interface GroupJoinActionProps {
   group: Group;
@@ -10,7 +10,7 @@ interface GroupJoinActionProps {
 }
 
 export const GroupJoinAction: React.FC<GroupJoinActionProps> = ({ group, className }) => {
-  const { joinGroup, leaveGroup } = useSocial();
+  const { joinGroup, leaveGroup, acceptGroupInvite, declineGroupInvite } = useSocial();
   const confirm = useConfirm();
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -55,6 +55,30 @@ export const GroupJoinAction: React.FC<GroupJoinActionProps> = ({ group, classNa
             </button>
           </div>
         )}
+      </div>
+    );
+  }
+
+  if (group.hasPendingInvite) {
+    return (
+      <div className={`flex items-center gap-1.5 ${className || ''}`}>
+        <span className="hidden sm:flex items-center gap-1 text-[11px] font-bold text-indigo-600">
+          <Mail className="w-3.5 h-3.5" />
+          Bạn được mời
+        </span>
+        <button
+          onClick={() => acceptGroupInvite(group.id)}
+          className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-colors"
+        >
+          Chấp nhận
+        </button>
+        <button
+          onClick={() => declineGroupInvite(group.id)}
+          className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 transition-colors"
+          title="Từ chối lời mời"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
       </div>
     );
   }

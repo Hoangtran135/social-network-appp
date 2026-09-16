@@ -15,7 +15,8 @@ import { ReportItem } from '../../types';
 import { useConfirm } from '../../common/ConfirmDialogProvider';
 
 export const AdminReportsPage: React.FC = () => {
-  const { reports, resolveReport, dismissReport, deletePostAdmin, posts, comments, groups } = useSocial();
+  const { reports, resolveReport, dismissReport, deletePostAdmin, deleteCommentAdmin, posts, comments, groups, showToast } =
+    useSocial();
   const { allUsers } = useAuth();
   const confirm = useConfirm();
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'resolved' | 'dismissed'>('all');
@@ -53,7 +54,18 @@ export const AdminReportsPage: React.FC = () => {
   const handleActionAndDelete = async (report: ReportItem) => {
     if (!(await confirm('Xóa nội dung vi phạm này và đánh dấu báo cáo đã xử lý?'))) return;
     if (report.targetType === 'post') {
-      deletePostAdmin(report.targetId);
+      await deletePostAdmin(report.targetId);
+    } else if (report.targetType === 'comment') {
+      const comment = Object.values(comments)
+        .flat()
+        .find((c) => c.id === report.targetId);
+      if (comment) {
+        await deleteCommentAdmin(comment.postId, comment.id);
+      } else {
+        showToast('Không tìm thấy bình luận này (có thể đã bị xóa).', 'error');
+      }
+    } else {
+      showToast('Loại nội dung này cần được xử lý thủ công ở trang quản lý tương ứng.', 'error');
     }
     resolveReport(report.id, 'Đã xử lý gỡ bỏ nội dung vi phạm');
   };

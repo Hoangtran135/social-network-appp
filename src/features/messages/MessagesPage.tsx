@@ -241,13 +241,20 @@ export const MessagesPage: React.FC = () => {
     setOpenReactionPickerFor(null);
   };
 
-  // Filter conversations
-  const filteredConversations = conversations.filter((c) => {
-    const title = c.isGroup
-      ? c.name
-      : c.participants.map((p) => p.name).join(' ');
-    return title?.toLowerCase().includes(searchQuery.toLowerCase());
-  });
+  // Filter + sort conversations: most recent activity (last message, or conversation
+  // creation if it has none yet) always shows first.
+  const filteredConversations = conversations
+    .filter((c) => {
+      const title = c.isGroup
+        ? c.name
+        : c.participants.map((p) => p.name).join(' ');
+      return title?.toLowerCase().includes(searchQuery.toLowerCase());
+    })
+    .sort((a, b) => {
+      const aTime = new Date(a.lastMessage?.createdAt || a.updatedAt).getTime();
+      const bTime = new Date(b.lastMessage?.createdAt || b.updatedAt).getTime();
+      return bTime - aTime;
+    });
 
   const handleSendMessage = (e?: React.FormEvent) => {
     if (e) e.preventDefault();

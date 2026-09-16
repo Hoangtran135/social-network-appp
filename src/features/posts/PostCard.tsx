@@ -200,7 +200,10 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const reactionTypes = Array.from(new Set(post.reactions.map((r) => r.type)));
 
   return (
-    <article className="bg-white rounded-2xl border border-slate-200 shadow-xs mb-5 overflow-hidden transition-all hover:border-slate-300/80">
+    <article
+      id={`post-${post.id}`}
+      className="bg-white rounded-2xl border border-slate-200 shadow-xs mb-5 overflow-hidden transition-all hover:border-slate-300/80 scroll-mt-20"
+    >
       {/* Header */}
       <div className="p-4 sm:p-5 pb-3 flex items-center justify-between">
         <div className="flex items-center gap-3 min-w-0">

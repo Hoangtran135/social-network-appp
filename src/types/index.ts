@@ -139,6 +139,7 @@ export interface Group {
   isAdmin?: boolean;
   hasPendingJoinRequest?: boolean;
   joinRequestsCount?: number;
+  hasPendingInvite?: boolean;
   rules?: string[];
   createdAt: string;
 }
@@ -162,7 +163,7 @@ export interface NotificationItem {
   id: string;
   userId: string; // target user
   actor: User;
-  type: 'like' | 'comment' | 'share' | 'friend_request' | 'friend_accept' | 'group_invite' | 'system';
+  type: 'like' | 'comment' | 'share' | 'friend_request' | 'friend_accept' | 'group_invite' | 'system' | 'moderation';
   content: string;
   targetId?: string; // postId, groupId, etc.
   targetType?: 'post' | 'group' | 'profile' | 'system';

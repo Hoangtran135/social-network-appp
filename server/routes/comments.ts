@@ -107,7 +107,16 @@ commentsRouter.delete('/:id', async (req: AuthedRequest, res) => {
   const post = await PostModel.findById(comment.post);
   const isAuthor = comment.author.toString() === req.userId;
   const isPostOwner = post && post.author.toString() === req.userId;
-  if (!isAuthor && !isPostOwner) {
+  if (!isAuthor && isPostOwner) {
+    await createNotification({
+      user: comment.author,
+      actor: req.userId,
+      type: 'system',
+      content: 'đã xóa bình luận của bạn khỏi bài viết của họ.',
+      targetId: post!._id.toString(),
+      targetType: 'post',
+    });
+  } else if (!isAuthor && !isPostOwner) {
     const me = await UserModel.findById(req.userId);
     if (!me || me.role !== 'admin') {
       res.status(403).json({ error: 'Bạn không có quyền xóa bình luận này.' });
@@ -116,7 +125,7 @@ commentsRouter.delete('/:id', async (req: AuthedRequest, res) => {
     await createNotification({
       user: comment.author,
       actor: req.userId,
-      type: 'system',
+      type: 'moderation',
       content: 'Bình luận của bạn đã bị quản trị viên gỡ bỏ do vi phạm chính sách cộng đồng.',
       targetType: 'system',
     });
@@ -130,15 +139,25 @@ commentsRouter.delete('/:id', async (req: AuthedRequest, res) => {
 });
 
 commentsRouter.post('/:id/like', async (req: AuthedRequest, res) => {
-  const comment = await CommentModel.findById(req.params.id);
-  if (!comment) {
+  const commentId = req.params.id;
+  const exists = await CommentModel.exists({ _id: commentId });
+  if (!exists) {
     res.status(404).json({ error: 'Không tìm thấy bình luận.' });
     return;
   }
-  const idx = comment.likes.findIndex((u: any) => u.toString() === req.userId);
-  if (idx > -1) comment.likes.splice(idx, 1);
-  else comment.likes.push(req.userId as any);
-  await comment.save();
-  await comment.populate('author');
+
+  // Atomic pull-or-push so a user can never end up with two like entries from a double-click/race.
+  const removed = await CommentModel.findOneAndUpdate(
+    { _id: commentId, likes: req.userId },
+    { $pull: { likes: req.userId } }
+  );
+  if (!removed) {
+    await CommentModel.findOneAndUpdate(
+      { _id: commentId, likes: { $ne: req.userId } },
+      { $push: { likes: req.userId } }
+    );
+  }
+
+  const comment = await CommentModel.findById(commentId).populate('author');
   res.json({ comment: serializeComment(comment) });
 });

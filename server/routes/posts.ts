@@ -144,7 +144,7 @@ postsRouter.delete('/:id', async (req: AuthedRequest, res) => {
     await createNotification({
       user: post.author,
       actor: req.userId,
-      type: 'system',
+      type: 'moderation',
       content: 'Bài viết của bạn đã bị quản trị viên gỡ bỏ do vi phạm chính sách cộng đồng.',
       targetType: 'system',
     });
@@ -155,7 +155,8 @@ postsRouter.delete('/:id', async (req: AuthedRequest, res) => {
 
 postsRouter.post('/:id/react', validateBody(reactPostSchema), async (req: AuthedRequest, res) => {
   const { type } = req.body;
-  const post = await PostModel.findById(req.params.id).populate(POPULATE);
+  const postId = req.params.id;
+  const post = await PostModel.findById(postId);
   if (!post) {
     res.status(404).json({ error: 'Không tìm thấy bài viết.' });
     return;
@@ -165,29 +166,39 @@ postsRouter.post('/:id/react', validateBody(reactPostSchema), async (req: Authed
     res.status(403).json({ error: 'Bạn không có quyền tương tác với bài viết này.' });
     return;
   }
-  const existingIndex = post.reactions.findIndex((r: any) => r.userId.toString() === req.userId);
-  if (existingIndex > -1) {
-    if (post.reactions[existingIndex].type === type) {
-      post.reactions.splice(existingIndex, 1);
-    } else {
-      post.reactions[existingIndex].type = type;
-    }
-  } else {
-    post.reactions.push({ type, userId: req.userId } as any);
-    if (post.author.toString() !== req.userId) {
-      await createNotification({
-        user: post.author,
-        actor: req.userId,
-        type: 'like',
-        content: `đã thả cảm xúc (${type}) về bài viết của bạn`,
-        targetId: post._id.toString(),
-        targetType: 'post',
-      });
+
+  // Each user may only ever have one entry in `reactions`. The three updates below are each
+  // atomic single-document operations (no read-modify-write), so two rapid/concurrent requests
+  // from the same user can't both pass a "no existing reaction" check and double-push.
+  const removed = await PostModel.findOneAndUpdate(
+    { _id: postId, reactions: { $elemMatch: { userId: req.userId, type } } },
+    { $pull: { reactions: { userId: req.userId } } }
+  );
+  if (!removed) {
+    const changed = await PostModel.findOneAndUpdate(
+      { _id: postId, 'reactions.userId': req.userId },
+      { $set: { 'reactions.$.type': type } }
+    );
+    if (!changed) {
+      const added = await PostModel.findOneAndUpdate(
+        { _id: postId, 'reactions.userId': { $ne: req.userId } },
+        { $push: { reactions: { type, userId: req.userId } } }
+      );
+      if (added && post.author.toString() !== req.userId) {
+        await createNotification({
+          user: post.author,
+          actor: req.userId,
+          type: 'like',
+          content: `đã thả cảm xúc (${type}) về bài viết của bạn`,
+          targetId: post._id.toString(),
+          targetType: 'post',
+        });
+      }
     }
   }
-  await post.save();
-  await post.populate(POPULATE);
-  res.json({ post: serializePost(post, req.userId) });
+
+  const fresh = await PostModel.findById(postId).populate(POPULATE);
+  res.json({ post: serializePost(fresh, req.userId) });
 });
 
 postsRouter.post('/:id/pin', async (req: AuthedRequest, res) => {

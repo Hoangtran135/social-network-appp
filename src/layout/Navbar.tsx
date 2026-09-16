@@ -16,6 +16,7 @@ import {
   Settings,
   Bookmark,
   Sparkles,
+  ShieldAlert,
 } from 'lucide-react';
 import { timeAgo } from '../utils/time';
 
@@ -25,7 +26,7 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({ onOpenCreatePost }) => {
   const { currentUser, logout, isAdmin } = useAuth();
-  const { notifications, conversations, markNotificationAsRead } = useSocial();
+  const { notifications, conversations, posts, markNotificationAsRead } = useSocial();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -52,6 +53,18 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCreatePost }) => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Retries a few times since the target post's page may still be rendering right after navigation.
+  const scrollToPost = (postId: string, attempt = 0) => {
+    const el = document.getElementById(`post-${postId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('ring-2', 'ring-blue-500');
+      setTimeout(() => el.classList.remove('ring-2', 'ring-blue-500'), 2000);
+    } else if (attempt < 20) {
+      setTimeout(() => scrollToPost(postId, attempt + 1), 100);
+    }
+  };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -207,33 +220,55 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCreatePost }) => {
                   {notifications.length === 0 ? (
                     <div className="p-6 text-center text-slate-400 text-sm">Không có thông báo mới</div>
                   ) : (
-                    notifications.slice(0, 5).map((n) => (
+                    notifications.slice(0, 5).map((n) => {
+                      const isSystemActor = n.type === 'moderation';
+                      const displayName = isSystemActor ? 'Quản trị viên' : n.actor.name;
+                      return (
                       <div
                         key={n.id}
                         onClick={() => {
                           markNotificationAsRead(n.id);
                           setShowNotifMenu(false);
-                          if (n.targetType === 'post') navigate('/');
-                          if (n.targetType === 'profile') navigate(`/profile/${n.actor.id}`);
+                          if (n.targetType === 'post' && n.targetId) {
+                            const targetPost = posts.find((p) => p.id === n.targetId);
+                            const path = targetPost?.wallOwnerId ? `/profile/${targetPost.wallOwnerId}` : '/';
+                            if (window.location.pathname === path) {
+                              scrollToPost(n.targetId);
+                            } else {
+                              navigate(path);
+                              setTimeout(() => scrollToPost(n.targetId!), 150);
+                            }
+                          } else if (n.targetType === 'profile') {
+                            navigate(`/profile/${n.actor.id}`);
+                          } else if (n.targetType === 'group' && n.targetId) {
+                            navigate(`/groups/${n.targetId}`);
+                          }
                         }}
                         className={`px-4 py-3 flex items-start gap-3 hover:bg-slate-50 cursor-pointer transition-colors ${
                           !n.isRead ? 'bg-blue-50/50' : ''
                         }`}
                       >
-                        <img
-                          src={n.actor.avatar}
-                          alt={n.actor.name}
-                          className="w-10 h-10 rounded-full object-cover shrink-0"
-                        />
+                        {isSystemActor ? (
+                          <div className="w-10 h-10 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center shrink-0">
+                            <ShieldAlert className="w-5 h-5" />
+                          </div>
+                        ) : (
+                          <img
+                            src={n.actor.avatar}
+                            alt={displayName}
+                            className="w-10 h-10 rounded-full object-cover shrink-0"
+                          />
+                        )}
                         <div className="flex-1 min-w-0 text-xs">
                           <p className="text-slate-800 leading-snug">
-                            <span className="font-bold">{n.actor.name}</span> {n.content}
+                            <span className="font-bold">{displayName}</span> {n.content}
                           </p>
                           <span className="text-[11px] text-slate-400 mt-1 block">{timeAgo(n.createdAt)}</span>
                         </div>
                         {!n.isRead && <span className="w-2 h-2 rounded-full bg-blue-600 mt-1.5 shrink-0" />}
                       </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               </div>

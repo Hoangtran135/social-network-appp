@@ -93,6 +93,8 @@ interface SocialContextType {
   fetchGroupJoinRequests: (groupId: string) => Promise<GroupJoinRequestItem[]>;
   approveGroupJoinRequest: (groupId: string, userId: string, name: string) => Promise<void>;
   rejectGroupJoinRequest: (groupId: string, userId: string, name: string) => Promise<void>;
+  acceptGroupInvite: (groupId: string) => Promise<void>;
+  declineGroupInvite: (groupId: string) => Promise<void>;
   inviteToGroup: (groupId: string, user: User) => Promise<void>;
   removeGroupMember: (groupId: string, userId: string) => Promise<void>;
   promoteGroupMember: (groupId: string, userId: string, role: 'admin' | 'moderator') => Promise<void>;
@@ -263,6 +265,12 @@ export const SocialProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             : c
         )
       );
+      // Toast unless the user is already looking at this conversation's thread.
+      const isViewingThisThread = window.location.pathname === `/messages/${data.conversationId}`;
+      if (data.message.senderId !== currentUser.id && !isViewingThisThread) {
+        const preview = data.message.content?.trim() || (data.message.attachments?.length ? 'Đã gửi một tệp đính kèm' : 'Đã gửi một tin nhắn');
+        showToast(`${data.message.senderName}: ${preview}`, 'info');
+      }
     };
 
     const onNewNotification = (notif: NotificationItem) => {
@@ -852,6 +860,26 @@ export const SocialProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
+  const acceptGroupInvite = async (groupId: string) => {
+    try {
+      const { group } = await api.post<{ group: Group }>(`/groups/${groupId}/invites/accept`);
+      setGroups((prev) => prev.map((g) => (g.id === groupId ? group : g)));
+      showToast(`Đã tham gia nhóm "${group.name}"!`, 'success');
+    } catch (err) {
+      handleError(err, 'Không thể chấp nhận lời mời.');
+    }
+  };
+
+  const declineGroupInvite = async (groupId: string) => {
+    try {
+      const { group } = await api.post<{ group: Group }>(`/groups/${groupId}/invites/decline`);
+      setGroups((prev) => prev.map((g) => (g.id === groupId ? group : g)));
+      showToast('Đã từ chối lời mời tham gia nhóm.', 'info');
+    } catch (err) {
+      handleError(err, 'Không thể từ chối lời mời.');
+    }
+  };
+
   const leaveGroup = async (groupId: string) => {
     try {
       const { group } = await api.post<{ group: Group }>(`/groups/${groupId}/leave`);
@@ -1085,6 +1113,8 @@ export const SocialProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         fetchGroupJoinRequests,
         approveGroupJoinRequest,
         rejectGroupJoinRequest,
+        acceptGroupInvite,
+        declineGroupInvite,
         inviteToGroup,
         removeGroupMember,
         promoteGroupMember,

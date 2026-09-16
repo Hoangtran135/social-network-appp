@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { GroupModel } from '../models/Group';
 import { GroupJoinRequestModel } from '../models/GroupJoinRequest';
+import { GroupInviteModel } from '../models/GroupInvite';
+import { FriendshipModel } from '../models/FriendRequest';
 import { PostModel } from '../models/Post';
 import { createNotification } from '../notify';
 import { requireAuth, AuthedRequest } from '../middleware/auth';
@@ -15,6 +17,8 @@ groupsRouter.get('/', async (req: AuthedRequest, res) => {
   const groups = await GroupModel.find().limit(300).populate('members.user creator');
   const myPendingRequests = await GroupJoinRequestModel.find({ user: req.userId }).select('group');
   const pendingGroupIds = new Set(myPendingRequests.map((r: any) => r.group.toString()));
+  const myPendingInvites = await GroupInviteModel.find({ user: req.userId }).select('group');
+  const invitedGroupIds = new Set(myPendingInvites.map((r: any) => r.group.toString()));
 
   const adminGroupIds = groups
     .filter((g: any) => g.members.some((m: any) => id(m) === req.userId && ['admin', 'moderator'].includes(m.role)))
@@ -30,6 +34,7 @@ groupsRouter.get('/', async (req: AuthedRequest, res) => {
       serializeGroup(g, req.userId, {
         hasPendingJoinRequest: pendingGroupIds.has(g._id.toString()),
         joinRequestsCount: countByGroup.get(g._id.toString()),
+        hasPendingInvite: invitedGroupIds.has(g._id.toString()),
       })
     ),
   });
@@ -69,6 +74,19 @@ groupsRouter.post('/:id/join', async (req: AuthedRequest, res) => {
     res.json({ group: serializeGroup(group, req.userId) });
     return;
   }
+
+  // Already invited by an admin? Joining is then just accepting that invite — no need to
+  // queue a separate request for someone who's already been asked in.
+  const pendingInvite = await GroupInviteModel.findOne({ group: group._id, user: req.userId });
+  if (pendingInvite) {
+    group.members.push({ user: req.userId, role: 'member' } as any);
+    await group.save();
+    await group.populate('members.user creator');
+    await pendingInvite.deleteOne();
+    res.json({ group: serializeGroup(group, req.userId) });
+    return;
+  }
+
   try {
     await GroupJoinRequestModel.create({ group: group._id, user: req.userId });
   } catch (err: any) {
@@ -129,6 +147,7 @@ groupsRouter.post('/:id/join-requests/:userId/approve', async (req: AuthedReques
     await group.populate('members.user creator');
   }
   await request.deleteOne();
+  await GroupInviteModel.deleteOne({ group: group._id, user: req.params.userId });
 
   await createNotification({
     user: req.params.userId,
@@ -197,6 +216,19 @@ groupsRouter.post('/:id/members/:userId/promote', validateBody(groupPromoteSchem
   target.role = req.body.role === 'admin' ? 'admin' : 'moderator';
   await group.save();
   await group.populate('members.user creator');
+
+  await createNotification({
+    user: req.params.userId,
+    actor: req.userId,
+    type: 'group_invite',
+    content:
+      target.role === 'admin'
+        ? `đã bổ nhiệm bạn làm trưởng nhóm "${group.name}".`
+        : `đã bổ nhiệm bạn làm phó nhóm "${group.name}".`,
+    targetId: group._id.toString(),
+    targetType: 'group',
+  });
+
   res.json({ group: serializeGroup(group, req.userId) });
 });
 
@@ -216,21 +248,82 @@ groupsRouter.post('/:id/invite', validateBody(groupInviteSchema), async (req: Au
     res.status(409).json({ error: 'Người này đã là thành viên của nhóm.' });
     return;
   }
-  group.members.push({ user: userId, role: 'member' } as any);
-  await group.save();
-  await group.populate('members.user creator');
-  // Clears any pending join request from this user, since invite immediately grants membership.
-  await GroupJoinRequestModel.deleteOne({ group: group._id, user: userId });
+  const isFriend = await FriendshipModel.exists({
+    $or: [
+      { userA: req.userId, userB: userId },
+      { userA: userId, userB: req.userId },
+    ],
+  });
+  if (!isFriend) {
+    res.status(403).json({ error: 'Bạn chỉ có thể mời bạn bè vào nhóm.' });
+    return;
+  }
+
+  // If this person already asked to join, an invite from an admin just approves that
+  // request outright instead of creating a redundant, separately-confirmable invite.
+  const existingRequest = await GroupJoinRequestModel.findOne({ group: group._id, user: userId });
+  if (existingRequest) {
+    group.members.push({ user: userId, role: 'member' } as any);
+    await group.save();
+    await group.populate('members.user creator');
+    await existingRequest.deleteOne();
+    await createNotification({
+      user: userId,
+      actor: req.userId,
+      type: 'group_invite',
+      content: `đã chấp nhận yêu cầu tham gia nhóm "${group.name}" của bạn.`,
+      targetId: group._id.toString(),
+      targetType: 'group',
+    });
+    res.json({ group: serializeGroup(group, req.userId) });
+    return;
+  }
+
+  try {
+    await GroupInviteModel.create({ group: group._id, user: userId, invitedBy: req.userId });
+  } catch (err: any) {
+    if (err?.code !== 11000) throw err; // ignore duplicate-invite race
+  }
 
   await createNotification({
     user: userId,
     actor: req.userId,
     type: 'group_invite',
-    content: `đã mời bạn tham gia nhóm "${group.name}".`,
+    content: `đã mời bạn tham gia nhóm "${group.name}". Bấm để xem và xác nhận.`,
     targetId: group._id.toString(),
     targetType: 'group',
   });
 
+  res.json({ group: serializeGroup(group, req.userId) });
+});
+
+groupsRouter.post('/:id/invites/accept', async (req: AuthedRequest, res) => {
+  const group = await GroupModel.findById(req.params.id).populate('members.user creator');
+  if (!group) {
+    res.status(404).json({ error: 'Không tìm thấy nhóm.' });
+    return;
+  }
+  const invite = await GroupInviteModel.findOne({ group: group._id, user: req.userId });
+  if (!invite) {
+    res.status(404).json({ error: 'Không tìm thấy lời mời tham gia nhóm.' });
+    return;
+  }
+  if (!findMembership(group, req.userId)) {
+    group.members.push({ user: req.userId, role: 'member' } as any);
+    await group.save();
+    await group.populate('members.user creator');
+  }
+  await invite.deleteOne();
+  res.json({ group: serializeGroup(group, req.userId) });
+});
+
+groupsRouter.post('/:id/invites/decline', async (req: AuthedRequest, res) => {
+  const group = await GroupModel.findById(req.params.id).populate('members.user creator');
+  if (!group) {
+    res.status(404).json({ error: 'Không tìm thấy nhóm.' });
+    return;
+  }
+  await GroupInviteModel.deleteOne({ group: group._id, user: req.userId });
   res.json({ group: serializeGroup(group, req.userId) });
 });
 
@@ -293,5 +386,6 @@ groupsRouter.delete('/:id', async (req: AuthedRequest, res) => {
   await group.deleteOne();
   await PostModel.deleteMany({ group: req.params.id });
   await GroupJoinRequestModel.deleteMany({ group: req.params.id });
+  await GroupInviteModel.deleteMany({ group: req.params.id });
   res.json({ ok: true });
 });

@@ -118,7 +118,7 @@ usersRouter.patch('/:id/ban', requireAdmin, async (req: AuthedRequest, res) => {
   await createNotification({
     user: target._id,
     actor: req.userId,
-    type: 'system',
+    type: 'moderation',
     content: target.isBanned
       ? 'Tài khoản của bạn đã bị khóa do vi phạm chính sách cộng đồng.'
       : 'Tài khoản của bạn đã được mở khóa.',

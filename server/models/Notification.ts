@@ -6,7 +6,7 @@ const notificationSchema = new Schema(
     actor: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     type: {
       type: String,
-      enum: ['like', 'comment', 'share', 'friend_request', 'friend_accept', 'group_invite', 'system'],
+      enum: ['like', 'comment', 'share', 'friend_request', 'friend_accept', 'group_invite', 'system', 'moderation'],
       required: true,
     },
     content: { type: String, required: true },

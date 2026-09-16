@@ -12,6 +12,7 @@ import {
   Unlock,
   ExternalLink,
   Radio,
+  Bot,
 } from 'lucide-react';
 import { useConfirm } from '../../common/ConfirmDialogProvider';
 
@@ -193,7 +194,12 @@ export const AdminUsersPage: React.FC = () => {
                             : 'bg-slate-900 text-slate-400 border border-slate-800'
                         }`}
                       >
-                        {user.role === 'admin' ? (
+                        {user.isBot ? (
+                          <>
+                            <Bot className="w-3 h-3 text-indigo-400" />
+                            <span>Bot hệ thống</span>
+                          </>
+                        ) : user.role === 'admin' ? (
                           <>
                             <Shield className="w-3 h-3 text-purple-400" />
                             <span>Quản trị viên</span>
@@ -246,7 +252,7 @@ export const AdminUsersPage: React.FC = () => {
                           <ExternalLink className="w-3.5 h-3.5" />
                         </Link>
 
-                        {!isSelf && (
+                        {!isSelf && !user.isBot && (
                           <>
                             <button
                               onClick={() => handleToggleRole(user.id, user.name, user.role)}

@@ -21,6 +21,7 @@ type NotifFilter = 'all' | 'unread' | 'friends' | 'interactions';
 export const NotificationsPage: React.FC = () => {
   const {
     notifications,
+    posts,
     markNotificationAsRead,
     markAllNotificationsAsRead,
     hasMoreNotifications,
@@ -58,10 +59,31 @@ export const NotificationsPage: React.FC = () => {
     }
   };
 
+  // Retries a few times since the target post's page may still be rendering right after navigation.
+  const scrollToPost = (postId: string, attempt = 0) => {
+    const el = document.getElementById(`post-${postId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('ring-2', 'ring-blue-500');
+      setTimeout(() => el.classList.remove('ring-2', 'ring-blue-500'), 2000);
+    } else if (attempt < 20) {
+      setTimeout(() => scrollToPost(postId, attempt + 1), 100);
+    }
+  };
+
   const handleNotificationClick = (notif: NotificationItem) => {
     markNotificationAsRead(notif.id);
-    if (notif.targetType === 'post') {
-      navigate('/');
+    if (notif.targetType === 'post' && notif.targetId) {
+      const targetId = notif.targetId;
+      const targetPost = posts.find((p) => p.id === targetId);
+      // Wall posts only render on the wall owner's profile, not the main feed.
+      const path = targetPost?.wallOwnerId ? `/profile/${targetPost.wallOwnerId}` : '/';
+      if (window.location.pathname === path) {
+        scrollToPost(targetId);
+      } else {
+        navigate(path);
+        setTimeout(() => scrollToPost(targetId), 150);
+      }
     } else if (notif.targetType === 'profile') {
       navigate(`/profile/${notif.actor.id}`);
     } else if (notif.targetType === 'group' && notif.targetId) {
@@ -153,7 +175,11 @@ export const NotificationsPage: React.FC = () => {
               <p className="text-xs text-slate-400 mt-1">Khi có hoạt động mới, thông báo sẽ hiển thị ở đây.</p>
             </div>
           ) : (
-            filteredNotifications.map((notif) => (
+            filteredNotifications.map((notif) => {
+              // Admin moderation/system notifications never reveal which admin acted.
+              const isSystemActor = notif.type === 'moderation';
+              const displayName = isSystemActor ? 'Quản trị viên' : notif.actor.name;
+              return (
               <div
                 key={notif.id}
                 onClick={() => handleNotificationClick(notif)}
@@ -163,11 +189,17 @@ export const NotificationsPage: React.FC = () => {
               >
                 {/* Actor Avatar with Type Badge */}
                 <div className="relative shrink-0">
-                  <img
-                    src={notif.actor.avatar}
-                    alt={notif.actor.name}
-                    className="w-12 h-12 rounded-2xl object-cover border border-slate-200"
-                  />
+                  {isSystemActor ? (
+                    <div className="w-12 h-12 rounded-2xl bg-purple-100 text-purple-600 flex items-center justify-center border border-slate-200">
+                      <ShieldAlert className="w-6 h-6" />
+                    </div>
+                  ) : (
+                    <img
+                      src={notif.actor.avatar}
+                      alt={displayName}
+                      className="w-12 h-12 rounded-2xl object-cover border border-slate-200"
+                    />
+                  )}
                   <span className="absolute -bottom-1 -right-1 p-1 bg-white rounded-full shadow-xs border border-slate-100">
                     {getNotifIcon(notif.type)}
                   </span>
@@ -175,7 +207,7 @@ export const NotificationsPage: React.FC = () => {
 
                 <div className="flex-1 min-w-0">
                   <p className="text-xs sm:text-sm text-slate-800 leading-snug">
-                    <span className="font-bold text-slate-900">{notif.actor.name}</span>{' '}
+                    <span className="font-bold text-slate-900">{displayName}</span>{' '}
                     {notif.content}
                   </p>
                   <span className="text-[11px] text-slate-400 mt-1 block">{timeAgo(notif.createdAt)}</span>
@@ -185,7 +217,8 @@ export const NotificationsPage: React.FC = () => {
                   <span className="w-2.5 h-2.5 rounded-full bg-blue-600 mt-2 shrink-0 animate-pulse" />
                 )}
               </div>
-            ))
+              );
+            })
           )}
         </div>
 
