@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useSocial } from '../../context/SocialContext';
 import { CreateGroupModal } from './CreateGroupModal';
+import { GroupJoinAction } from './GroupJoinAction';
 import {
   Users2,
   Plus,
@@ -11,13 +12,11 @@ import {
   ArrowRight,
   TrendingUp,
 } from 'lucide-react';
-import { useConfirm } from '../../common/ConfirmDialogProvider';
 
 type GroupTab = 'my_groups' | 'discover';
 
 export const GroupsPage: React.FC = () => {
-  const { groups, joinGroup, leaveGroup } = useSocial();
-  const confirm = useConfirm();
+  const { groups } = useSocial();
   const [activeTab, setActiveTab] = useState<GroupTab>('my_groups');
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -196,24 +195,7 @@ export const GroupsPage: React.FC = () => {
                       <ArrowRight className="w-3.5 h-3.5" />
                     </Link>
 
-                    {group.isMember ? (
-                      <button
-                        onClick={async () => {
-                          if (await confirm(`Bạn có chắc muốn rời khỏi nhóm "${group.name}"?`)) leaveGroup(group.id);
-                        }}
-                        className="group/leave px-3 py-2 rounded-xl bg-slate-50 hover:bg-rose-50 text-slate-500 hover:text-rose-600 text-xs font-semibold transition-colors"
-                      >
-                        <span className="group-hover/leave:hidden">Đã tham gia</span>
-                        <span className="hidden group-hover/leave:inline">Rời nhóm</span>
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => joinGroup(group.id)}
-                        className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors shadow-xs"
-                      >
-                        Tham gia
-                      </button>
-                    )}
+                    <GroupJoinAction group={group} />
                   </div>
                 </div>
               </div>

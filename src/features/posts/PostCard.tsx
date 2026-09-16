@@ -25,6 +25,7 @@ import {
   Loader2,
   UserPlus,
   Check,
+  Pin,
 } from 'lucide-react';
 import { timeAgo } from '../../utils/time';
 import { uploadImageFile } from '../../utils/upload';
@@ -49,6 +50,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const {
     toggleReaction,
     toggleSavePost,
+    togglePinPost,
     sharePost,
     sharePostToConversation,
     getOrCreateConversation,
@@ -59,6 +61,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
     toggleLikeComment,
     showToast,
     friends,
+    groups,
   } = useSocial();
 
   const [showOptions, setShowOptions] = useState(false);
@@ -78,6 +81,8 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [showShareToChat, setShowShareToChat] = useState(false);
   const [isSharingToChat, setIsSharingToChat] = useState(false);
+  const [replyingToId, setReplyingToId] = useState<string | null>(null);
+  const [replyTexts, setReplyTexts] = useState<Record<string, string>>({});
 
   const optionsRef = useRef<HTMLDivElement>(null);
   const reactionTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -85,6 +90,10 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const postComments: Comment[] = comments[post.id] || [];
   const isOwner = currentUser?.id === post.author.id;
   const userReaction = post.reactions.find((r) => r.userId === currentUser?.id);
+  const groupMembership = post.groupId
+    ? groups.find((g) => g.id === post.groupId)?.members.find((m) => m.userId === currentUser?.id)
+    : undefined;
+  const canPin = isOwner || groupMembership?.role === 'admin' || groupMembership?.role === 'moderator';
 
   // Close options menu on click outside
   useEffect(() => {
@@ -111,6 +120,23 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const toggleCommentTaggedUser = (userId: string) => {
     setCommentTaggedUserIds((prev) => (prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]));
   };
+
+  const handleReplySubmit = (parentId: string) => {
+    const text = (replyTexts[parentId] || '').trim();
+    if (!text) return;
+    addComment(post.id, text, undefined, parentId);
+    setReplyTexts((prev) => ({ ...prev, [parentId]: '' }));
+    setReplyingToId(null);
+  };
+
+  const topLevelComments = postComments.filter((c) => !c.parentId);
+  const repliesByParent = postComments.reduce<Record<string, Comment[]>>((acc, c) => {
+    if (c.parentId) {
+      acc[c.parentId] = acc[c.parentId] || [];
+      acc[c.parentId].push(c);
+    }
+    return acc;
+  }, {});
 
   const commentTaggedUsers = friends.filter((f) => commentTaggedUserIds.includes(f.id));
 
@@ -225,6 +251,11 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
             </div>
 
             <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
+              {post.pinned && (
+                <span className="flex items-center gap-1 text-blue-600 font-semibold">
+                  <Pin className="w-3 h-3 fill-blue-600" /> Đã ghim
+                </span>
+              )}
               <span>{timeAgo(post.createdAt)}</span>
               {post.updatedAt && <span className="text-[11px] italic">(đã chỉnh sửa {timeAgo(post.updatedAt)})</span>}
               <span>·</span>
@@ -270,6 +301,19 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
                 <Copy className="w-4 h-4 text-slate-400" />
                 <span>Sao chép liên kết</span>
               </button>
+
+              {canPin && (
+                <button
+                  onClick={() => {
+                    togglePinPost(post.id);
+                    setShowOptions(false);
+                  }}
+                  className="w-full px-3.5 py-2.5 text-left flex items-center gap-2.5 hover:bg-slate-50 text-slate-700"
+                >
+                  <Pin className={`w-4 h-4 ${post.pinned ? 'text-blue-600 fill-blue-600' : 'text-slate-400'}`} />
+                  <span>{post.pinned ? 'Bỏ ghim bài viết' : 'Ghim bài viết'}</span>
+                </button>
+              )}
 
               {(isOwner || isAdmin) && (
                 <button
@@ -667,67 +711,158 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
 
           {/* Comment List */}
           <div className="space-y-2.5 pt-2">
-            {postComments.map((c) => {
+            {topLevelComments.map((c) => {
               const isCommentOwner = currentUser?.id === c.author.id;
               const hasLiked = c.likes.includes(currentUser?.id || '');
+              const replies = repliesByParent[c.id] || [];
               return (
-                <div key={c.id} className="flex items-start gap-2.5 group/comm">
-                  <Link to={`/profile/${c.author.id}`} className="shrink-0">
-                    <img
-                      src={c.author.avatar}
-                      alt={c.author.name}
-                      className="w-7 h-7 rounded-full object-cover"
-                    />
-                  </Link>
+                <div key={c.id} className="group/comm">
+                  <div className="flex items-start gap-2.5">
+                    <Link to={`/profile/${c.author.id}`} className="shrink-0">
+                      <img
+                        src={c.author.avatar}
+                        alt={c.author.name}
+                        className="w-7 h-7 rounded-full object-cover"
+                      />
+                    </Link>
 
-                  <div className="flex-1 min-w-0">
-                    <div className="bg-white rounded-2xl p-3 border border-slate-200 inline-block max-w-full">
-                      <Link
-                        to={`/profile/${c.author.id}`}
-                        className="font-bold text-xs text-slate-900 hover:underline block"
-                      >
-                        {c.author.name}
-                      </Link>
-                      <p className="text-xs text-slate-800 mt-0.5 leading-relaxed">{c.content}</p>
-                      {c.taggedUsers && c.taggedUsers.length > 0 && (
-                        <p className="text-[11px] text-slate-500 mt-1">
-                          cùng với{' '}
-                          {c.taggedUsers.map((u, i) => (
-                            <React.Fragment key={u.id}>
-                              <Link to={`/profile/${u.id}`} className="font-bold text-blue-600 hover:underline">
-                                {u.name}
-                              </Link>
-                              {i < c.taggedUsers!.length - 1 && ', '}
-                            </React.Fragment>
-                          ))}
-                        </p>
-                      )}
-                      {c.image && (
-                        <img
-                          src={c.image}
-                          alt="Comment Media"
-                          className="mt-2 rounded-lg max-h-40 object-cover border border-slate-100"
-                        />
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-3 text-[11px] font-semibold text-slate-500 mt-1 pl-2">
-                      <span>{timeAgo(c.createdAt)}</span>
-                      <button
-                        onClick={() => toggleLikeComment(post.id, c.id)}
-                        className={`hover:underline ${hasLiked ? 'text-blue-600 font-bold' : ''}`}
-                      >
-                        Thích {c.likes.length > 0 && `(${c.likes.length})`}
-                      </button>
-                      {(isCommentOwner || isAdmin) && (
-                        <button
-                          onClick={async () => {
-                            if (await confirm('Xóa bình luận này?')) deleteComment(post.id, c.id);
-                          }}
-                          className="text-rose-500 hover:underline"
+                    <div className="flex-1 min-w-0">
+                      <div className="bg-white rounded-2xl p-3 border border-slate-200 inline-block max-w-full">
+                        <Link
+                          to={`/profile/${c.author.id}`}
+                          className="font-bold text-xs text-slate-900 hover:underline block"
                         >
-                          Xóa
+                          {c.author.name}
+                        </Link>
+                        <p className="text-xs text-slate-800 mt-0.5 leading-relaxed">{c.content}</p>
+                        {c.taggedUsers && c.taggedUsers.length > 0 && (
+                          <p className="text-[11px] text-slate-500 mt-1">
+                            cùng với{' '}
+                            {c.taggedUsers.map((u, i) => (
+                              <React.Fragment key={u.id}>
+                                <Link to={`/profile/${u.id}`} className="font-bold text-blue-600 hover:underline">
+                                  {u.name}
+                                </Link>
+                                {i < c.taggedUsers!.length - 1 && ', '}
+                              </React.Fragment>
+                            ))}
+                          </p>
+                        )}
+                        {c.image && (
+                          <img
+                            src={c.image}
+                            alt="Comment Media"
+                            className="mt-2 rounded-lg max-h-40 object-cover border border-slate-100"
+                          />
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-3 text-[11px] font-semibold text-slate-500 mt-1 pl-2">
+                        <span>{timeAgo(c.createdAt)}</span>
+                        <button
+                          onClick={() => toggleLikeComment(post.id, c.id)}
+                          className={`hover:underline ${hasLiked ? 'text-blue-600 font-bold' : ''}`}
+                        >
+                          Thích {c.likes.length > 0 && `(${c.likes.length})`}
                         </button>
+                        <button
+                          onClick={() => setReplyingToId(replyingToId === c.id ? null : c.id)}
+                          className="hover:underline"
+                        >
+                          Trả lời
+                        </button>
+                        {(isCommentOwner || isAdmin) && (
+                          <button
+                            onClick={async () => {
+                              if (await confirm('Xóa bình luận này?')) deleteComment(post.id, c.id);
+                            }}
+                            className="text-rose-500 hover:underline"
+                          >
+                            Xóa
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Reply input */}
+                      {replyingToId === c.id && (
+                        <form
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            handleReplySubmit(c.id);
+                          }}
+                          className="flex items-center gap-2 mt-2 pl-2"
+                        >
+                          <img
+                            src={currentUser?.avatar}
+                            alt={currentUser?.name}
+                            className="w-6 h-6 rounded-full object-cover shrink-0"
+                          />
+                          <input
+                            autoFocus
+                            value={replyTexts[c.id] || ''}
+                            onChange={(e) => setReplyTexts((prev) => ({ ...prev, [c.id]: e.target.value }))}
+                            placeholder={`Trả lời ${c.author.name}...`}
+                            className="flex-1 min-w-0 text-xs bg-white border border-slate-200 rounded-full px-3 py-1.5 focus:outline-none focus:border-blue-500"
+                          />
+                          <button
+                            type="submit"
+                            disabled={!(replyTexts[c.id] || '').trim()}
+                            className="p-1.5 rounded-full bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 transition-colors shrink-0"
+                          >
+                            <Send className="w-3.5 h-3.5" />
+                          </button>
+                        </form>
+                      )}
+
+                      {/* Nested replies */}
+                      {replies.length > 0 && (
+                        <div className="mt-2.5 pl-2 space-y-2.5 border-l-2 border-slate-100">
+                          {replies.map((r) => {
+                            const isReplyOwner = currentUser?.id === r.author.id;
+                            const replyHasLiked = r.likes.includes(currentUser?.id || '');
+                            return (
+                              <div key={r.id} className="flex items-start gap-2.5 pl-2">
+                                <Link to={`/profile/${r.author.id}`} className="shrink-0">
+                                  <img
+                                    src={r.author.avatar}
+                                    alt={r.author.name}
+                                    className="w-6 h-6 rounded-full object-cover"
+                                  />
+                                </Link>
+                                <div className="flex-1 min-w-0">
+                                  <div className="bg-white rounded-2xl p-2.5 border border-slate-200 inline-block max-w-full">
+                                    <Link
+                                      to={`/profile/${r.author.id}`}
+                                      className="font-bold text-xs text-slate-900 hover:underline block"
+                                    >
+                                      {r.author.name}
+                                    </Link>
+                                    <p className="text-xs text-slate-800 mt-0.5 leading-relaxed">{r.content}</p>
+                                  </div>
+                                  <div className="flex items-center gap-3 text-[11px] font-semibold text-slate-500 mt-1 pl-2">
+                                    <span>{timeAgo(r.createdAt)}</span>
+                                    <button
+                                      onClick={() => toggleLikeComment(post.id, r.id)}
+                                      className={`hover:underline ${replyHasLiked ? 'text-blue-600 font-bold' : ''}`}
+                                    >
+                                      Thích {r.likes.length > 0 && `(${r.likes.length})`}
+                                    </button>
+                                    {(isReplyOwner || isAdmin) && (
+                                      <button
+                                        onClick={async () => {
+                                          if (await confirm('Xóa bình luận này?')) deleteComment(post.id, r.id);
+                                        }}
+                                        className="text-rose-500 hover:underline"
+                                      >
+                                        Xóa
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
                       )}
                     </div>
                   </div>

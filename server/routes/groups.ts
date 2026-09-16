@@ -1,19 +1,43 @@
 import { Router } from 'express';
 import { GroupModel } from '../models/Group';
+import { GroupJoinRequestModel } from '../models/GroupJoinRequest';
 import { PostModel } from '../models/Post';
 import { createNotification } from '../notify';
 import { requireAuth, AuthedRequest } from '../middleware/auth';
 import { validateBody } from '../middleware/validate';
-import { createGroupSchema, groupInviteSchema, groupPromoteSchema } from '../schemas';
-import { serializeGroup } from '../serialize';
+import { createGroupSchema, groupInviteSchema, groupPromoteSchema, groupRulesSchema } from '../schemas';
+import { serializeGroup, serializeGroupJoinRequest } from '../serialize';
 
 export const groupsRouter = Router();
 groupsRouter.use(requireAuth);
 
 groupsRouter.get('/', async (req: AuthedRequest, res) => {
   const groups = await GroupModel.find().limit(300).populate('members.user creator');
-  res.json({ groups: groups.map((g) => serializeGroup(g, req.userId)) });
+  const myPendingRequests = await GroupJoinRequestModel.find({ user: req.userId }).select('group');
+  const pendingGroupIds = new Set(myPendingRequests.map((r: any) => r.group.toString()));
+
+  const adminGroupIds = groups
+    .filter((g: any) => g.members.some((m: any) => id(m) === req.userId && ['admin', 'moderator'].includes(m.role)))
+    .map((g: any) => g._id);
+  const requestCounts = await GroupJoinRequestModel.aggregate([
+    { $match: { group: { $in: adminGroupIds } } },
+    { $group: { _id: '$group', count: { $sum: 1 } } },
+  ]);
+  const countByGroup = new Map(requestCounts.map((r: any) => [r._id.toString(), r.count]));
+
+  res.json({
+    groups: groups.map((g: any) =>
+      serializeGroup(g, req.userId, {
+        hasPendingJoinRequest: pendingGroupIds.has(g._id.toString()),
+        joinRequestsCount: countByGroup.get(g._id.toString()),
+      })
+    ),
+  });
 });
+
+function id(m: any) {
+  return (m.user?._id ? m.user._id : m.user).toString();
+}
 
 groupsRouter.post('/', validateBody(createGroupSchema), async (req: AuthedRequest, res) => {
   const { name, description, privacy, avatar, coverImage } = req.body;
@@ -41,11 +65,95 @@ groupsRouter.post('/:id/join', async (req: AuthedRequest, res) => {
     res.status(404).json({ error: 'Không tìm thấy nhóm.' });
     return;
   }
-  if (!findMembership(group, req.userId)) {
-    group.members.push({ user: req.userId, role: 'member' } as any);
+  if (findMembership(group, req.userId)) {
+    res.json({ group: serializeGroup(group, req.userId) });
+    return;
+  }
+  try {
+    await GroupJoinRequestModel.create({ group: group._id, user: req.userId });
+  } catch (err: any) {
+    if (err?.code !== 11000) throw err; // ignore duplicate-request race
+  }
+
+  const admins = group.members.filter((m: any) => m.role === 'admin' || m.role === 'moderator');
+  await Promise.all(
+    admins.map((m: any) =>
+      createNotification({
+        user: m.user,
+        actor: req.userId,
+        type: 'group_invite',
+        content: `đã yêu cầu tham gia nhóm "${group.name}".`,
+        targetId: group._id.toString(),
+        targetType: 'group',
+      })
+    )
+  );
+
+  res.json({ group: serializeGroup(group, req.userId, { hasPendingJoinRequest: true }) });
+});
+
+groupsRouter.get('/:id/join-requests', async (req: AuthedRequest, res) => {
+  const group = await GroupModel.findById(req.params.id).populate('members.user creator');
+  if (!group) {
+    res.status(404).json({ error: 'Không tìm thấy nhóm.' });
+    return;
+  }
+  const requester = findMembership(group, req.userId);
+  if (!requester || (requester.role !== 'admin' && requester.role !== 'moderator')) {
+    res.status(403).json({ error: 'Chỉ trưởng nhóm hoặc phó nhóm mới có thể xem yêu cầu tham gia.' });
+    return;
+  }
+  const requests = await GroupJoinRequestModel.find({ group: group._id }).sort({ createdAt: -1 }).populate('user');
+  res.json({ requests: requests.map(serializeGroupJoinRequest) });
+});
+
+groupsRouter.post('/:id/join-requests/:userId/approve', async (req: AuthedRequest, res) => {
+  const group = await GroupModel.findById(req.params.id).populate('members.user creator');
+  if (!group) {
+    res.status(404).json({ error: 'Không tìm thấy nhóm.' });
+    return;
+  }
+  const requester = findMembership(group, req.userId);
+  if (!requester || (requester.role !== 'admin' && requester.role !== 'moderator')) {
+    res.status(403).json({ error: 'Chỉ trưởng nhóm hoặc phó nhóm mới có thể duyệt yêu cầu.' });
+    return;
+  }
+  const request = await GroupJoinRequestModel.findOne({ group: group._id, user: req.params.userId });
+  if (!request) {
+    res.status(404).json({ error: 'Không tìm thấy yêu cầu tham gia.' });
+    return;
+  }
+  if (!findMembership(group, req.params.userId)) {
+    group.members.push({ user: req.params.userId, role: 'member' } as any);
     await group.save();
     await group.populate('members.user creator');
   }
+  await request.deleteOne();
+
+  await createNotification({
+    user: req.params.userId,
+    actor: req.userId,
+    type: 'group_invite',
+    content: `đã chấp nhận yêu cầu tham gia nhóm "${group.name}" của bạn.`,
+    targetId: group._id.toString(),
+    targetType: 'group',
+  });
+
+  res.json({ group: serializeGroup(group, req.userId) });
+});
+
+groupsRouter.post('/:id/join-requests/:userId/reject', async (req: AuthedRequest, res) => {
+  const group = await GroupModel.findById(req.params.id).populate('members.user creator');
+  if (!group) {
+    res.status(404).json({ error: 'Không tìm thấy nhóm.' });
+    return;
+  }
+  const requester = findMembership(group, req.userId);
+  if (!requester || (requester.role !== 'admin' && requester.role !== 'moderator')) {
+    res.status(403).json({ error: 'Chỉ trưởng nhóm hoặc phó nhóm mới có thể từ chối yêu cầu.' });
+    return;
+  }
+  await GroupJoinRequestModel.deleteOne({ group: group._id, user: req.params.userId });
   res.json({ group: serializeGroup(group, req.userId) });
 });
 
@@ -111,6 +219,8 @@ groupsRouter.post('/:id/invite', validateBody(groupInviteSchema), async (req: Au
   group.members.push({ user: userId, role: 'member' } as any);
   await group.save();
   await group.populate('members.user creator');
+  // Clears any pending join request from this user, since invite immediately grants membership.
+  await GroupJoinRequestModel.deleteOne({ group: group._id, user: userId });
 
   await createNotification({
     user: userId,
@@ -154,6 +264,22 @@ groupsRouter.post('/:id/members/:userId/remove', async (req: AuthedRequest, res)
   res.json({ group: serializeGroup(group, req.userId) });
 });
 
+groupsRouter.patch('/:id/rules', validateBody(groupRulesSchema), async (req: AuthedRequest, res) => {
+  const group = await GroupModel.findById(req.params.id).populate('members.user creator');
+  if (!group) {
+    res.status(404).json({ error: 'Không tìm thấy nhóm.' });
+    return;
+  }
+  const requester = findMembership(group, req.userId);
+  if (!requester || (requester.role !== 'admin' && requester.role !== 'moderator')) {
+    res.status(403).json({ error: 'Chỉ trưởng nhóm hoặc phó nhóm mới có thể chỉnh sửa quy tắc.' });
+    return;
+  }
+  group.rules = req.body.rules;
+  await group.save();
+  res.json({ group: serializeGroup(group, req.userId) });
+});
+
 groupsRouter.delete('/:id', async (req: AuthedRequest, res) => {
   const group = await GroupModel.findById(req.params.id);
   if (!group) {
@@ -166,5 +292,6 @@ groupsRouter.delete('/:id', async (req: AuthedRequest, res) => {
   }
   await group.deleteOne();
   await PostModel.deleteMany({ group: req.params.id });
+  await GroupJoinRequestModel.deleteMany({ group: req.params.id });
   res.json({ ok: true });
 });

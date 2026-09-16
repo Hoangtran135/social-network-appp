@@ -6,6 +6,7 @@ import {
   Conversation,
   Message,
   Group,
+  GroupJoinRequestItem,
   FriendRequest,
   NotificationItem,
   ReportItem,
@@ -28,6 +29,7 @@ interface SocialContextType {
   deletePost: (postId: string) => Promise<void>;
   toggleReaction: (postId: string, type: ReactionType) => Promise<void>;
   toggleSavePost: (postId: string) => Promise<void>;
+  togglePinPost: (postId: string) => Promise<void>;
   sharePost: (postId: string, message?: string) => Promise<void>;
 
   // Comments
@@ -82,9 +84,13 @@ interface SocialContextType {
   createGroup: (name: string, description: string, privacy: 'public' | 'private', avatar?: string, coverImage?: string) => Promise<Group>;
   joinGroup: (groupId: string) => Promise<void>;
   leaveGroup: (groupId: string) => Promise<void>;
+  fetchGroupJoinRequests: (groupId: string) => Promise<GroupJoinRequestItem[]>;
+  approveGroupJoinRequest: (groupId: string, userId: string, name: string) => Promise<void>;
+  rejectGroupJoinRequest: (groupId: string, userId: string, name: string) => Promise<void>;
   inviteToGroup: (groupId: string, user: User) => Promise<void>;
   removeGroupMember: (groupId: string, userId: string) => Promise<void>;
   promoteGroupMember: (groupId: string, userId: string, role: 'admin' | 'moderator') => Promise<void>;
+  updateGroupRules: (groupId: string, rules: string[]) => Promise<void>;
   deleteGroupAdmin: (groupId: string, name: string) => Promise<void>;
 
   // Notifications
@@ -381,6 +387,16 @@ export const SocialProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       showToast(post.isSaved ? 'Đã lưu bài viết vào mục đã lưu' : 'Đã bỏ lưu bài viết', 'info');
     } catch (err) {
       handleError(err, 'Không thể lưu bài viết.');
+    }
+  };
+
+  const togglePinPost = async (postId: string) => {
+    try {
+      const { post } = await api.post<{ post: Post }>(`/posts/${postId}/pin`);
+      setPosts((prev) => prev.map((p) => (p.id === postId ? post : p)));
+      showToast(post.pinned ? 'Đã ghim bài viết' : 'Đã bỏ ghim bài viết', 'info');
+    } catch (err) {
+      handleError(err, 'Không thể ghim bài viết.');
     }
   };
 
@@ -779,9 +795,42 @@ export const SocialProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     try {
       const { group } = await api.post<{ group: Group }>(`/groups/${groupId}/join`);
       setGroups((prev) => prev.map((g) => (g.id === groupId ? group : g)));
-      showToast('Đã tham gia nhóm!', 'success');
+      showToast(
+        group.isMember ? 'Đã tham gia nhóm!' : 'Đã gửi yêu cầu tham gia, chờ trưởng nhóm duyệt.',
+        group.isMember ? 'success' : 'info'
+      );
     } catch (err) {
       handleError(err, 'Không thể tham gia nhóm.');
+    }
+  };
+
+  const fetchGroupJoinRequests = async (groupId: string) => {
+    try {
+      const { requests } = await api.get<{ requests: GroupJoinRequestItem[] }>(`/groups/${groupId}/join-requests`);
+      return requests;
+    } catch (err) {
+      handleError(err, 'Không thể tải danh sách yêu cầu tham gia.');
+      return [];
+    }
+  };
+
+  const approveGroupJoinRequest = async (groupId: string, userId: string, name: string) => {
+    try {
+      const { group } = await api.post<{ group: Group }>(`/groups/${groupId}/join-requests/${userId}/approve`);
+      setGroups((prev) => prev.map((g) => (g.id === groupId ? group : g)));
+      showToast(`Đã chấp nhận ${name} vào nhóm!`, 'success');
+    } catch (err) {
+      handleError(err, 'Không thể duyệt yêu cầu tham gia.');
+    }
+  };
+
+  const rejectGroupJoinRequest = async (groupId: string, userId: string, name: string) => {
+    try {
+      const { group } = await api.post<{ group: Group }>(`/groups/${groupId}/join-requests/${userId}/reject`);
+      setGroups((prev) => prev.map((g) => (g.id === groupId ? group : g)));
+      showToast(`Đã từ chối yêu cầu tham gia của ${name}.`, 'info');
+    } catch (err) {
+      handleError(err, 'Không thể từ chối yêu cầu tham gia.');
     }
   };
 
@@ -822,6 +871,16 @@ export const SocialProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       showToast(role === 'admin' ? 'Đã bổ nhiệm trưởng nhóm mới!' : 'Đã bổ nhiệm phó nhóm!', 'success');
     } catch (err) {
       handleError(err, 'Không thể bổ nhiệm.');
+    }
+  };
+
+  const updateGroupRules = async (groupId: string, rules: string[]) => {
+    try {
+      const { group } = await api.patch<{ group: Group }>(`/groups/${groupId}/rules`, { rules });
+      setGroups((prev) => prev.map((g) => (g.id === groupId ? group : g)));
+      showToast('Đã cập nhật quy tắc nhóm.', 'success');
+    } catch (err) {
+      handleError(err, 'Không thể cập nhật quy tắc nhóm.');
     }
   };
 
@@ -965,6 +1024,7 @@ export const SocialProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         deletePost,
         toggleReaction,
         toggleSavePost,
+        togglePinPost,
         sharePost,
         comments,
         addComment,
@@ -1004,9 +1064,13 @@ export const SocialProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         createGroup,
         joinGroup,
         leaveGroup,
+        fetchGroupJoinRequests,
+        approveGroupJoinRequest,
+        rejectGroupJoinRequest,
         inviteToGroup,
         removeGroupMember,
         promoteGroupMember,
+        updateGroupRules,
         deleteGroupAdmin,
         notifications,
         hasMoreNotifications,

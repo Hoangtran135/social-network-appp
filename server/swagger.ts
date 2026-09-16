@@ -33,8 +33,6 @@ const options: swaggerJSDoc.Options = {
             isBanned: { type: 'boolean' },
             isOnline: { type: 'boolean' },
             friendsCount: { type: 'integer' },
-            followersCount: { type: 'integer' },
-            followingCount: { type: 'integer' },
           },
         },
         Post: {

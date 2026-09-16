@@ -17,8 +17,6 @@ export interface User {
   website?: string;
   joinDate: string;
   friendsCount: number;
-  followersCount: number;
-  followingCount: number;
   isOnline?: boolean;
   lastActive?: string;
   blockedUserIds?: string[]; // only present on the currently logged-in user's own object
@@ -138,7 +136,16 @@ export interface Group {
   }[];
   isMember?: boolean;
   isAdmin?: boolean;
+  hasPendingJoinRequest?: boolean;
+  joinRequestsCount?: number;
   rules?: string[];
+  createdAt: string;
+}
+
+export interface GroupJoinRequestItem {
+  id: string;
+  groupId: string;
+  user: User;
   createdAt: string;
 }
 

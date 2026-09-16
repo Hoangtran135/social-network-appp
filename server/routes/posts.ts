@@ -190,6 +190,29 @@ postsRouter.post('/:id/react', validateBody(reactPostSchema), async (req: Authed
   res.json({ post: serializePost(post, req.userId) });
 });
 
+postsRouter.post('/:id/pin', async (req: AuthedRequest, res) => {
+  const post = await PostModel.findById(req.params.id).populate(POPULATE);
+  if (!post) {
+    res.status(404).json({ error: 'Không tìm thấy bài viết.' });
+    return;
+  }
+  const isOwnPost = post.author._id ? post.author._id.toString() === req.userId : post.author.toString() === req.userId;
+  let canPin = isOwnPost;
+  if (!canPin && post.group) {
+    const groupDoc: any = post.group;
+    const membership = groupDoc.members?.find((m: any) => m.user.toString() === req.userId);
+    canPin = !!membership && (membership.role === 'admin' || membership.role === 'moderator');
+  }
+  if (!canPin) {
+    res.status(403).json({ error: 'Bạn không có quyền ghim bài viết này.' });
+    return;
+  }
+  post.pinned = !post.pinned;
+  await post.save();
+  await post.populate(POPULATE);
+  res.json({ post: serializePost(post, req.userId) });
+});
+
 postsRouter.post('/:id/save', async (req: AuthedRequest, res) => {
   const post = await PostModel.findById(req.params.id).populate(POPULATE);
   if (!post) {

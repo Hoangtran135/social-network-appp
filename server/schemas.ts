@@ -90,6 +90,10 @@ export const groupPromoteSchema = z.object({
   role: z.enum(['admin', 'moderator']).optional(),
 });
 
+export const groupRulesSchema = z.object({
+  rules: z.array(z.string().trim().min(1).max(300)).max(30),
+});
+
 // --- Messages / Conversations ---
 export const createConversationSchema = z.object({
   participantId: objectId.optional(),

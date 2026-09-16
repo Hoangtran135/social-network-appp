@@ -121,9 +121,10 @@ export const ProfilePage: React.FC = () => {
   };
 
   // User posts: authored by them, or posted on their wall by a friend — excluding group discussion posts
-  const userPosts = posts.filter(
-    (p) => !p.groupId && (p.author.id === targetUser.id || p.wallOwnerId === targetUser.id)
-  );
+  // Pinned posts are shown first, preserving the otherwise-latest-first order within each group.
+  const userPosts = posts
+    .filter((p) => !p.groupId && (p.author.id === targetUser.id || p.wallOwnerId === targetUser.id))
+    .sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
 
   // Collect user photos
   const userPhotos = userPosts.flatMap((p) => p.images || []);

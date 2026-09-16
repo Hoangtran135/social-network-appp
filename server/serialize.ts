@@ -20,8 +20,6 @@ export function serializeUser(u: any) {
     website: u.website,
     joinDate: u.joinDate ? new Date(u.joinDate).toISOString() : undefined,
     friendsCount: u.friendsCount ?? 0,
-    followersCount: u.followersCount ?? 0,
-    followingCount: u.followingCount ?? 0,
     isOnline: u.isOnline,
     lastActive: u.lastActive ? new Date(u.lastActive).toISOString() : undefined,
     isBot: !!u.isBot,
@@ -97,7 +95,11 @@ export function serializeStory(s: any) {
   };
 }
 
-export function serializeGroup(g: any, viewerId?: string) {
+export function serializeGroup(
+  g: any,
+  viewerId?: string,
+  meta?: { hasPendingJoinRequest?: boolean; joinRequestsCount?: number }
+) {
   const viewerMembership = viewerId
     ? (g.members || []).find((m: any) => id(m.user) === viewerId)
     : undefined;
@@ -119,8 +121,19 @@ export function serializeGroup(g: any, viewerId?: string) {
     })),
     isMember: !!viewerMembership,
     isAdmin: viewerMembership?.role === 'admin',
+    hasPendingJoinRequest: !!meta?.hasPendingJoinRequest,
+    joinRequestsCount: meta?.joinRequestsCount,
     rules: g.rules,
     createdAt: g.createdAt,
+  };
+}
+
+export function serializeGroupJoinRequest(r: any) {
+  return {
+    id: id(r),
+    groupId: id(r.group),
+    user: serializeUser(r.user),
+    createdAt: r.createdAt,
   };
 }
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useSocial } from '../../context/SocialContext';
 import { useAuth } from '../auth/AuthContext';
@@ -6,6 +6,8 @@ import { timeAgo } from '../../utils/time';
 import { CreatePostBox } from '../posts/CreatePostBox';
 import { PostCard } from '../posts/PostCard';
 import { CreatePostModal } from '../posts/CreatePostModal';
+import { GroupJoinAction } from './GroupJoinAction';
+import { GroupJoinRequestItem } from '../../types';
 import {
   Lock,
   Globe,
@@ -20,6 +22,11 @@ import {
   UserPlus,
   UserMinus,
   ShieldCheck,
+  Edit2,
+  Trash2,
+  Save,
+  Check,
+  X,
 } from 'lucide-react';
 import { useConfirm } from '../../common/ConfirmDialogProvider';
 
@@ -28,15 +35,40 @@ type GroupDetailTab = 'feed' | 'members' | 'about';
 export const GroupDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { groups, posts, joinGroup, leaveGroup, inviteToGroup, removeGroupMember, promoteGroupMember } = useSocial();
+  const {
+    groups,
+    posts,
+    inviteToGroup,
+    removeGroupMember,
+    promoteGroupMember,
+    updateGroupRules,
+    fetchGroupJoinRequests,
+    approveGroupJoinRequest,
+    rejectGroupJoinRequest,
+  } = useSocial();
   const { currentUser, allUsers } = useAuth();
   const confirm = useConfirm();
 
   const [activeTab, setActiveTab] = useState<GroupDetailTab>('feed');
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
   const [showInviteList, setShowInviteList] = useState(false);
+  const [isEditingRules, setIsEditingRules] = useState(false);
+  const [rulesDraft, setRulesDraft] = useState<string[]>([]);
+  const [newRuleText, setNewRuleText] = useState('');
+  const [joinRequests, setJoinRequests] = useState<GroupJoinRequestItem[]>([]);
 
   const group = groups.find((g) => g.id === id);
+  const myMembership = group?.members.find((m) => m.userId === currentUser?.id);
+  const canManageMembers = myMembership?.role === 'admin' || myMembership?.role === 'moderator';
+
+  useEffect(() => {
+    if (!group || !canManageMembers) {
+      setJoinRequests([]);
+      return;
+    }
+    fetchGroupJoinRequests(group.id).then(setJoinRequests);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [group?.id, canManageMembers, group?.joinRequestsCount]);
 
   if (!group) {
     return (
@@ -58,11 +90,11 @@ export const GroupDetailPage: React.FC = () => {
     );
   }
 
-  // Filter posts belonging to this group
-  const groupPosts = posts.filter((p) => p.groupId === group.id);
+  // Filter posts belonging to this group; pinned posts are shown first.
+  const groupPosts = posts
+    .filter((p) => p.groupId === group.id)
+    .sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
 
-  const myMembership = group.members.find((m) => m.userId === currentUser?.id);
-  const canManageMembers = myMembership?.role === 'admin' || myMembership?.role === 'moderator';
   const invitableUsers = allUsers.filter(
     (u) => u.id !== currentUser?.id && !u.isBot && !group.members.some((m) => m.userId === u.id)
   );
@@ -125,36 +157,16 @@ export const GroupDetailPage: React.FC = () => {
 
               {/* Group Action Buttons */}
               <div className="flex items-center gap-2 shrink-0">
-                {group.isMember ? (
-                  <>
-                    <button
-                      onClick={() => setIsCreatePostOpen(true)}
-                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs transition-colors"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>Viết bài trong nhóm</span>
-                    </button>
-                    <button
-                      onClick={async () => {
-                        if (await confirm(`Bạn có chắc muốn rời khỏi nhóm "${group.name}"?`)) {
-                          leaveGroup(group.id);
-                        }
-                      }}
-                      className="group/leave px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 text-xs font-semibold transition-colors"
-                    >
-                      <span className="group-hover/leave:hidden">Đã tham gia</span>
-                      <span className="hidden group-hover/leave:inline">Rời nhóm</span>
-                    </button>
-                  </>
-                ) : (
+                {group.isMember && (
                   <button
-                    onClick={() => joinGroup(group.id)}
-                    className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-500/20 transition-colors"
+                    onClick={() => setIsCreatePostOpen(true)}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs transition-colors"
                   >
                     <Plus className="w-4 h-4" />
-                    <span>Tham gia nhóm</span>
+                    <span>Viết bài trong nhóm</span>
                   </button>
                 )}
+                <GroupJoinAction group={group} />
               </div>
             </div>
 
@@ -210,14 +222,11 @@ export const GroupDetailPage: React.FC = () => {
             ) : (
               <div className="bg-blue-50/80 border border-blue-200 rounded-2xl p-4 text-center mb-5">
                 <p className="text-xs text-blue-800 font-semibold mb-2">
-                  Bạn cần tham gia nhóm để có thể đăng bài và tương tác cùng các thành viên.
+                  {group.hasPendingJoinRequest
+                    ? 'Yêu cầu tham gia của bạn đang chờ trưởng nhóm duyệt.'
+                    : 'Bạn cần tham gia nhóm để có thể đăng bài và tương tác cùng các thành viên.'}
                 </p>
-                <button
-                  onClick={() => joinGroup(group.id)}
-                  className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-colors"
-                >
-                  Tham gia ngay
-                </button>
+                {!group.hasPendingJoinRequest && <GroupJoinAction group={group} className="mx-auto" />}
               </div>
             )}
 
@@ -264,6 +273,49 @@ export const GroupDetailPage: React.FC = () => {
                 </button>
               )}
             </div>
+
+            {canManageMembers && joinRequests.length > 0 && (
+              <div className="mb-5 p-4 bg-amber-50 rounded-2xl border border-amber-200">
+                <h4 className="text-xs font-bold text-amber-700 uppercase tracking-wider mb-3">
+                  Yêu cầu tham gia đang chờ duyệt ({joinRequests.length})
+                </h4>
+                <div className="space-y-2">
+                  {joinRequests.map((r) => (
+                    <div key={r.id} className="flex items-center justify-between p-2 rounded-xl bg-white border border-amber-100">
+                      <Link to={`/profile/${r.user.id}`} className="flex items-center gap-2.5 min-w-0">
+                        <img src={r.user.avatar} alt={r.user.name} className="w-9 h-9 rounded-full object-cover" />
+                        <div className="min-w-0">
+                          <div className="font-bold text-xs text-slate-900 truncate">{r.user.name}</div>
+                          <div className="text-[11px] text-slate-400 truncate">@{r.user.username}</div>
+                        </div>
+                      </Link>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          onClick={async () => {
+                            await approveGroupJoinRequest(group.id, r.user.id, r.user.name);
+                            setJoinRequests((prev) => prev.filter((req) => req.id !== r.id));
+                          }}
+                          className="p-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 transition-colors"
+                          title="Chấp nhận"
+                        >
+                          <Check className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={async () => {
+                            await rejectGroupJoinRequest(group.id, r.user.id, r.user.name);
+                            setJoinRequests((prev) => prev.filter((req) => req.id !== r.id));
+                          }}
+                          className="p-2 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 transition-colors"
+                          title="Từ chối"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {showInviteList && canManageMembers && (
               <div className="mb-5 p-4 bg-slate-50 rounded-2xl border border-slate-200">
@@ -398,25 +450,110 @@ export const GroupDetailPage: React.FC = () => {
 
             {/* Rules */}
             <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs">
-              <h3 className="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
-                <Shield className="w-5 h-5 text-purple-600" />
-                <span>Quy tắc của nhóm</span>
-              </h3>
-
-              <div className="space-y-3">
-                {group.rules && group.rules.length > 0 ? (
-                  group.rules.map((rule, idx) => (
-                    <div key={idx} className="flex items-start gap-3 p-3 rounded-xl bg-slate-50">
-                      <span className="w-6 h-6 rounded-full bg-purple-100 text-purple-700 font-bold text-xs flex items-center justify-center shrink-0">
-                        {idx + 1}
-                      </span>
-                      <p className="text-xs text-slate-700 leading-relaxed font-medium">{rule}</p>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-xs text-slate-400">Chưa có quy tắc cụ thể.</p>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-purple-600" />
+                  <span>Quy tắc của nhóm</span>
+                </h3>
+                {canManageMembers && !isEditingRules && (
+                  <button
+                    onClick={() => {
+                      setRulesDraft(group.rules ? [...group.rules] : []);
+                      setIsEditingRules(true);
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 transition-colors"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                    <span>Chỉnh sửa</span>
+                  </button>
                 )}
               </div>
+
+              {isEditingRules ? (
+                <div className="space-y-3">
+                  {rulesDraft.map((rule, idx) => (
+                    <div key={idx} className="flex items-start gap-2">
+                      <span className="w-6 h-6 mt-1.5 rounded-full bg-purple-100 text-purple-700 font-bold text-xs flex items-center justify-center shrink-0">
+                        {idx + 1}
+                      </span>
+                      <input
+                        value={rule}
+                        onChange={(e) =>
+                          setRulesDraft((prev) => prev.map((r, i) => (i === idx ? e.target.value : r)))
+                        }
+                        className="flex-1 min-w-0 text-xs px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-purple-500 focus:outline-none"
+                      />
+                      <button
+                        onClick={() => setRulesDraft((prev) => prev.filter((_, i) => i !== idx))}
+                        className="p-2 rounded-lg text-rose-500 hover:bg-rose-50 shrink-0"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+
+                  <div className="flex items-center gap-2 pt-1">
+                    <input
+                      value={newRuleText}
+                      onChange={(e) => setNewRuleText(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && newRuleText.trim()) {
+                          e.preventDefault();
+                          setRulesDraft((prev) => [...prev, newRuleText.trim()]);
+                          setNewRuleText('');
+                        }
+                      }}
+                      placeholder="Thêm quy tắc mới..."
+                      className="flex-1 min-w-0 text-xs px-3 py-2 bg-slate-50 border border-dashed border-slate-300 rounded-xl focus:bg-white focus:border-purple-500 focus:outline-none"
+                    />
+                    <button
+                      onClick={() => {
+                        if (!newRuleText.trim()) return;
+                        setRulesDraft((prev) => [...prev, newRuleText.trim()]);
+                        setNewRuleText('');
+                      }}
+                      className="p-2 rounded-lg text-purple-600 hover:bg-purple-50 shrink-0"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-2">
+                    <button
+                      onClick={() => setIsEditingRules(false)}
+                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                      <span>Hủy</span>
+                    </button>
+                    <button
+                      onClick={async () => {
+                        await updateGroupRules(group.id, rulesDraft);
+                        setIsEditingRules(false);
+                      }}
+                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 transition-colors"
+                    >
+                      <Save className="w-3.5 h-3.5" />
+                      <span>Lưu quy tắc</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {group.rules && group.rules.length > 0 ? (
+                    group.rules.map((rule, idx) => (
+                      <div key={idx} className="flex items-start gap-3 p-3 rounded-xl bg-slate-50">
+                        <span className="w-6 h-6 rounded-full bg-purple-100 text-purple-700 font-bold text-xs flex items-center justify-center shrink-0">
+                          {idx + 1}
+                        </span>
+                        <p className="text-xs text-slate-700 leading-relaxed font-medium">{rule}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-xs text-slate-400">Chưa có quy tắc cụ thể.</p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}
