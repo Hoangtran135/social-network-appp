@@ -7,6 +7,7 @@ import { requireAuth, AuthedRequest } from '../middleware/auth';
 import { validateBody } from '../middleware/validate';
 import { createPostSchema, updatePostSchema, reactPostSchema, sharePostSchema } from '../schemas';
 import { serializePost } from '../serialize';
+import { emitToUsers, broadcastToAll } from '../realtime';
 
 export const postsRouter = Router();
 postsRouter.use(requireAuth);
@@ -20,6 +21,38 @@ async function getFriendIds(userId: string | undefined): Promise<Set<string>> {
   );
 }
 
+// Who's allowed to see this post live — mirrors isPostVisible's rules. A private-group post
+// only reaches that group's members regardless of its own privacy field; otherwise it's the
+// author's friends for "friends" posts, or everyone for public ones. "only_me" never broadcasts.
+async function postRecipients(post: any, authorId: string): Promise<{ toAll: boolean; userIds: string[] }> {
+  if (post.group && post.group.privacy === 'private') {
+    const memberIds = (post.group.members || [])
+      .map((m: any) => (m.user?._id ? m.user._id.toString() : m.user?.toString?.() || m.user))
+      .filter((uid: string) => uid !== authorId);
+    return { toAll: false, userIds: memberIds };
+  }
+  if (post.privacy === 'only_me') return { toAll: false, userIds: [] };
+  if (post.privacy === 'friends') {
+    const friendIds = await getFriendIds(authorId);
+    return { toAll: false, userIds: [...friendIds] };
+  }
+  return { toAll: true, userIds: [] };
+}
+
+async function broadcastPost(post: any, event: 'post:new' | 'post:update', authorId: string) {
+  const { toAll, userIds } = await postRecipients(post, authorId);
+  const payload = { post: serializePost(post, undefined) };
+  if (toAll) broadcastToAll(event, payload, authorId);
+  else emitToUsers(userIds, event, payload);
+}
+
+async function broadcastPostDeleted(post: any, authorId: string) {
+  const { toAll, userIds } = await postRecipients(post, authorId);
+  const payload = { postId: post._id.toString() };
+  if (toAll) broadcastToAll('post:delete', payload, authorId);
+  else emitToUsers(userIds, 'post:delete', payload);
+}
+
 function isPostVisible(p: any, userId: string | undefined, friendIds: Set<string>): boolean {
   if (p.group && p.group.privacy === 'private') {
     if (!p.group.members.some((m: any) => m.user.toString() === userId)) return false;
@@ -30,6 +63,13 @@ function isPostVisible(p: any, userId: string | undefined, friendIds: Set<string
   if (p.privacy === 'friends') return friendIds.has(authorId);
   return true; // public
 }
+
+// Cheap total for the admin dashboard — the main GET / is paginated so posts.length on
+// the client no longer reflects the real total.
+postsRouter.get('/stats', async (_req, res) => {
+  const total = await PostModel.countDocuments({});
+  res.json({ total });
+});
 
 postsRouter.get('/', async (req: AuthedRequest, res) => {
   const posts = await PostModel.find()
@@ -104,6 +144,7 @@ postsRouter.post('/', validateBody(createPostSchema), async (req: AuthedRequest,
   }
 
   res.json({ post: serializePost(post, req.userId) });
+  broadcastPost(post, 'post:new', req.userId!);
 });
 
 postsRouter.patch('/:id', validateBody(updatePostSchema), async (req: AuthedRequest, res) => {
@@ -126,10 +167,11 @@ postsRouter.patch('/:id', validateBody(updatePostSchema), async (req: AuthedRequ
   await post.save();
   await post.populate(POPULATE);
   res.json({ post: serializePost(post, req.userId) });
+  broadcastPost(post, 'post:update', req.userId!);
 });
 
 postsRouter.delete('/:id', async (req: AuthedRequest, res) => {
-  const post = await PostModel.findById(req.params.id);
+  const post = await PostModel.findById(req.params.id).populate('group');
   if (!post) {
     res.status(404).json({ error: 'Không tìm thấy bài viết.' });
     return;
@@ -149,8 +191,10 @@ postsRouter.delete('/:id', async (req: AuthedRequest, res) => {
       targetType: 'system',
     });
   }
+  const authorId = post.author.toString();
   await post.deleteOne();
   res.json({ ok: true });
+  broadcastPostDeleted(post, authorId);
 });
 
 postsRouter.post('/:id/react', validateBody(reactPostSchema), async (req: AuthedRequest, res) => {
@@ -199,6 +243,7 @@ postsRouter.post('/:id/react', validateBody(reactPostSchema), async (req: Authed
 
   const fresh = await PostModel.findById(postId).populate(POPULATE);
   res.json({ post: serializePost(fresh, req.userId) });
+  broadcastPost(fresh, 'post:update', post.author.toString());
 });
 
 postsRouter.post('/:id/pin', async (req: AuthedRequest, res) => {
@@ -222,6 +267,7 @@ postsRouter.post('/:id/pin', async (req: AuthedRequest, res) => {
   await post.save();
   await post.populate(POPULATE);
   res.json({ post: serializePost(post, req.userId) });
+  broadcastPost(post, 'post:update', post.author._id ? post.author._id.toString() : post.author.toString());
 });
 
 postsRouter.post('/:id/save', async (req: AuthedRequest, res) => {
@@ -268,4 +314,6 @@ postsRouter.post('/:id/share', validateBody(sharePostSchema), async (req: Authed
   });
   await shared.populate(POPULATE);
   res.json({ post: serializePost(shared, req.userId) });
+  broadcastPost(shared, 'post:new', req.userId!);
+  broadcastPost(original, 'post:update', original.author._id ? original.author._id.toString() : (original.author as any).toString());
 });

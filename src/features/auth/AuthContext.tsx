@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '../../types';
 import { api, setAccessToken, bootstrapAuth, ApiError } from '../../utils/api';
+import { getSocket, refreshSocketAuth } from '../../utils/socket';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -17,6 +18,7 @@ interface AuthContextType {
   unblockUser: (userId: string) => Promise<void>;
   allUsers: User[];
   refreshAllUsers: () => Promise<void>;
+  fetchUserById: (userId: string) => Promise<User | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -123,6 +125,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCurrentUser(user);
   };
 
+  // `allUsers` is now a bounded page, not the whole table — this fills in a specific
+  // user (e.g. a profile page visit, an incoming call) that page didn't happen to include.
+  const fetchUserById = async (userId: string): Promise<User | null> => {
+    try {
+      const { user } = await api.get<{ user: User }>(`/users/${userId}`);
+      setAllUsers((prev) => (prev.some((u) => u.id === userId) ? prev.map((u) => (u.id === userId ? user : u)) : [...prev, user]));
+      return user;
+    } catch {
+      return null;
+    }
+  };
+
+  // Keeps a second admin's user-management table (or anyone's `allUsers`) in sync when
+  // another admin bans/promotes someone — without this it only updates after a reload.
+  useEffect(() => {
+    if (!currentUser) return;
+    refreshSocketAuth();
+    const socket = getSocket();
+    const onAdminUserUpdate = (data: { user: User }) => {
+      setAllUsers((prev) => prev.map((u) => (u.id === data.user.id ? data.user : u)));
+    };
+    socket.on('admin:user-update', onAdminUserUpdate);
+    return () => {
+      socket.off('admin:user-update', onAdminUserUpdate);
+    };
+  }, [currentUser?.id]);
+
   return (
     <AuthContext.Provider
       value={{
@@ -140,6 +169,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         unblockUser,
         allUsers,
         refreshAllUsers,
+        fetchUserById,
       }}
     >
       {children}

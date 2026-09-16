@@ -29,6 +29,7 @@ import { groupsRouter } from "./server/routes/groups";
 import { messagesRouter } from "./server/routes/messages";
 import { storiesRouter } from "./server/routes/stories";
 import { reportsRouter } from "./server/routes/reports";
+import { searchRouter } from "./server/routes/search";
 
 if (process.env.NODE_ENV === "production" && !process.env.MONGODB_URI) {
   throw new Error("MONGODB_URI must be set in production — refusing to start against the local default.");
@@ -71,6 +72,18 @@ async function startServer() {
   app.use(cookieParser());
   app.use(mongoSanitize());
 
+  // A general safety net for every API route — generous enough that no legitimate client
+  // ever hits it, but it keeps one runaway/abusive client from being able to hammer the
+  // database hard enough to degrade the service for everyone else sharing it.
+  const apiLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    limit: 300,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Quá nhiều yêu cầu, vui lòng thử lại sau." },
+  });
+  app.use("/api", apiLimiter);
+
   // Throttle auth endpoints — brute-force / credential-stuffing protection
   const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -96,6 +109,7 @@ async function startServer() {
   app.use("/api/messages", messagesRouter);
   app.use("/api/stories", storiesRouter);
   app.use("/api/reports", reportsRouter);
+  app.use("/api/search", searchRouter);
 
   // API Routes
   app.get("/api", (req, res) => {

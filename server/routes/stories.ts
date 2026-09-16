@@ -3,9 +3,24 @@ import { StoryModel } from '../models/Story';
 import { FriendshipModel } from '../models/FriendRequest';
 import { requireAuth, AuthedRequest } from '../middleware/auth';
 import { serializeStory } from '../serialize';
+import { emitToUsers, broadcastToAll } from '../realtime';
 
 export const storiesRouter = Router();
 storiesRouter.use(requireAuth);
+
+async function getFriendIds(userId: string | undefined): Promise<string[]> {
+  const friendEdges = await FriendshipModel.find({ $or: [{ userA: userId }, { userB: userId }] });
+  return friendEdges.map((e: any) => (e.userA.toString() === userId ? e.userB.toString() : e.userA.toString()));
+}
+
+async function broadcastStory(story: any, event: 'story:new' | 'story:delete', payload: unknown, authorId: string) {
+  if (story.privacy === 'friends') {
+    const friendIds = await getFriendIds(authorId);
+    emitToUsers(friendIds, event, payload);
+  } else {
+    broadcastToAll(event, payload, authorId);
+  }
+}
 
 storiesRouter.get('/', async (req: AuthedRequest, res) => {
   const stories = await StoryModel.find({ expiresAt: { $gt: new Date() } })
@@ -40,6 +55,7 @@ storiesRouter.post('/', async (req: AuthedRequest, res) => {
   });
   await story.populate('user');
   res.json({ story: serializeStory(story) });
+  broadcastStory(story, 'story:new', { story: serializeStory(story) }, req.userId!);
 });
 
 storiesRouter.delete('/:id', async (req: AuthedRequest, res) => {
@@ -54,6 +70,7 @@ storiesRouter.delete('/:id', async (req: AuthedRequest, res) => {
   }
   await story.deleteOne();
   res.json({ ok: true });
+  broadcastStory(story, 'story:delete', { storyId: story._id.toString() }, req.userId!);
 });
 
 storiesRouter.post('/:id/view', async (req: AuthedRequest, res) => {

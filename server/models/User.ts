@@ -25,5 +25,10 @@ const userSchema = new Schema(
   { timestamps: { createdAt: 'joinDate', updatedAt: false } }
 );
 
+// email/username already get a unique index for free; role is checked on every admin
+// route and text search on name/username/bio backs GET /api/search.
+userSchema.index({ role: 1 });
+userSchema.index({ name: 'text', username: 'text', bio: 'text' });
+
 export type UserDoc = InferSchemaType<typeof userSchema>;
 export const UserModel = mongoose.models.User || mongoose.model('User', userSchema);

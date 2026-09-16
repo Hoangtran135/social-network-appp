@@ -35,6 +35,7 @@ interface SocialContextType {
 
   // Comments
   comments: Record<string, Comment[]>;
+  fetchCommentsForPost: (postId: string) => Promise<void>;
   addComment: (postId: string, content: string, image?: string, parentId?: string, taggedUserIds?: string[]) => Promise<void>;
   deleteComment: (postId: string, commentId: string) => Promise<void>;
   toggleLikeComment: (postId: string, commentId: string) => Promise<void>;
@@ -131,17 +132,9 @@ interface SocialContextType {
 
 const SocialContext = createContext<SocialContextType | undefined>(undefined);
 
-function groupCommentsByPost(comments: Comment[]): Record<string, Comment[]> {
-  const grouped: Record<string, Comment[]> = {};
-  for (const c of comments) {
-    if (!grouped[c.postId]) grouped[c.postId] = [];
-    grouped[c.postId].push(c);
-  }
-  return grouped;
-}
 
 export const SocialProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { currentUser } = useAuth();
+  const { currentUser, logout } = useAuth();
 
   const [posts, setPosts] = useState<Post[]>([]);
   const [comments, setComments] = useState<Record<string, Comment[]>>({});
@@ -196,10 +189,12 @@ export const SocialProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
 
     (async () => {
-      const [postsRes, commentsRes, storiesRes, friendsRes, reqRes, sentReqRes, convRes, groupsRes, notifRes, annRes] =
+      // Comments are no longer preloaded in bulk here — at scale that meant every single
+      // login paid the cost of fetching every comment on every visible post up front. They're
+      // now fetched per-post, lazily, via fetchCommentsForPost (see PostCard).
+      const [postsRes, storiesRes, friendsRes, reqRes, sentReqRes, convRes, groupsRes, notifRes, annRes] =
         await Promise.allSettled([
           api.get<{ posts: Post[] }>(`/posts?limit=${POSTS_PAGE_SIZE}&skip=0`),
-          api.get<{ comments: Comment[] }>('/comments'),
           api.get<{ stories: Story[] }>('/stories'),
           api.get<{ friends: User[] }>('/friends'),
           api.get<{ requests: FriendRequest[] }>('/friends/requests'),
@@ -214,7 +209,6 @@ export const SocialProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setPosts(postsRes.value.posts);
         setHasMorePosts(postsRes.value.posts.length === POSTS_PAGE_SIZE);
       }
-      if (commentsRes.status === 'fulfilled') setComments(groupCommentsByPost(commentsRes.value.comments));
       if (storiesRes.status === 'fulfilled') setStories(storiesRes.value.stories);
       if (friendsRes.status === 'fulfilled') setFriends(friendsRes.value.friends);
       if (reqRes.status === 'fulfilled') setFriendRequests(reqRes.value.requests);
@@ -316,16 +310,158 @@ export const SocialProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setPosts((prev) => prev.map((p) => (p.id === data.postId ? { ...p, commentsCount: p.commentsCount + 1 } : p)));
     };
 
+    // A post someone else just published, now visible to us live — skip it if we already
+    // have it (e.g. we're the one who triggered it via a different code path).
+    const onNewPost = (data: { post: Post }) => {
+      setPosts((prev) => (prev.some((p) => p.id === data.post.id) ? prev : [data.post, ...prev]));
+    };
+
+    // The broadcaster has no idea which viewers already have this post saved — it always
+    // serializes isSaved as false, so preserve whatever the viewer's own local copy says.
+    const onPostUpdated = (data: { post: Post }) => {
+      setPosts((prev) =>
+        prev.map((p) => (p.id === data.post.id ? { ...data.post, isSaved: p.isSaved } : p))
+      );
+    };
+
+    const onPostDeleted = (data: { postId: string }) => {
+      setPosts((prev) => prev.filter((p) => p.id !== data.postId));
+      setComments((prev) => {
+        if (!(data.postId in prev)) return prev;
+        const next = { ...prev };
+        delete next[data.postId];
+        return next;
+      });
+    };
+
+    // A group not yet in our local list — either a brand-new public group (everyone gets
+    // this) or one we were just invited/added to (targeted, carries our own viewer flags).
+    const onNewGroup = (data: { group: Group }) => {
+      setGroups((prev) => (prev.some((g) => g.id === data.group.id) ? prev : [data.group, ...prev]));
+    };
+
+    // The broadcaster serializes viewer-specific flags (isMember, isAdmin, pending
+    // request/invite) blind to who's actually receiving this, since one event fans out to
+    // many different people. Recompute isMember/isAdmin from the members list itself — the
+    // one thing that IS the same for everyone — and only trust the server's pending-request/
+    // invite flags when we're not a member (that's the one case, a fresh invite, where the
+    // server deliberately targeted just us with the real answer).
+    const onGroupUpdated = (data: { group: Group }) => {
+      setGroups((prev) => {
+        const exists = prev.some((g) => g.id === data.group.id);
+        const myMembership = data.group.members.find((m) => m.userId === currentUser.id);
+        const isMember = !!myMembership;
+        const merge = (prevGroup?: Group): Group => ({
+          ...data.group,
+          isMember,
+          isAdmin: myMembership?.role === 'admin',
+          hasPendingJoinRequest: isMember ? false : data.group.hasPendingJoinRequest ?? prevGroup?.hasPendingJoinRequest,
+          hasPendingInvite: isMember ? false : data.group.hasPendingInvite ?? prevGroup?.hasPendingInvite,
+          joinRequestsCount: data.group.joinRequestsCount ?? prevGroup?.joinRequestsCount,
+        });
+        if (!exists) return [merge(undefined), ...prev];
+        return prev.map((g) => (g.id === data.group.id ? merge(g) : g));
+      });
+    };
+
+    const onGroupDeleted = (data: { groupId: string }) => {
+      setGroups((prev) => prev.filter((g) => g.id !== data.groupId));
+      setPosts((prev) => prev.filter((p) => p.groupId !== data.groupId));
+    };
+
+    const onGroupMemberRemoved = (data: { groupId: string }) => {
+      showToast('Bạn đã bị xóa khỏi một nhóm.', 'info');
+      setGroups((prev) => prev.filter((g) => g.id !== data.groupId));
+    };
+
+    const onNewStory = (data: { story: Story }) => {
+      setStories((prev) => (prev.some((s) => s.id === data.story.id) ? prev : [data.story, ...prev]));
+    };
+
+    const onStoryDeleted = (data: { storyId: string }) => {
+      setStories((prev) => prev.filter((s) => s.id !== data.storyId));
+    };
+
+    const onFriendRequestRejected = (data: { requestId: string }) => {
+      setSentFriendRequests((prev) => prev.filter((r) => r.id !== data.requestId));
+    };
+
+    const onFriendRequestCancelled = (data: { requestId: string }) => {
+      setFriendRequests((prev) => prev.filter((r) => r.id !== data.requestId));
+    };
+
+    const onFriendRemoved = (data: { userId: string }) => {
+      setFriends((prev) => prev.filter((f) => f.id !== data.userId));
+    };
+
+    // Only admins are ever targeted by these (server only emits to role: 'admin' users),
+    // so it's safe to just merge into `reports` unconditionally.
+    const onNewReport = (data: { report: ReportItem }) => {
+      setReports((prev) => (prev.some((r) => r.id === data.report.id) ? prev : [data.report, ...prev]));
+    };
+
+    const onReportUpdated = (data: { report: ReportItem }) => {
+      setReports((prev) => prev.map((r) => (r.id === data.report.id ? data.report : r)));
+    };
+
+    const onCommentDeleted = (data: { postId: string; commentId: string }) => {
+      setComments((prev) => {
+        const existing = prev[data.postId];
+        if (!existing || !existing.some((c) => c.id === data.commentId)) return prev;
+        return { ...prev, [data.postId]: existing.filter((c) => c.id !== data.commentId) };
+      });
+      setPosts((prev) =>
+        prev.map((p) => (p.id === data.postId ? { ...p, commentsCount: Math.max(0, p.commentsCount - 1) } : p))
+      );
+    };
+
+    const onBanned = () => {
+      showToast('Tài khoản của bạn đã bị khóa do vi phạm chính sách cộng đồng.', 'error');
+      logout();
+    };
+
     socket.on('message:new', onNewMessage);
     socket.on('notification:new', onNewNotification);
     socket.on('conversation:cleared', onConversationCleared);
     socket.on('comment:new', onNewComment);
+    socket.on('post:new', onNewPost);
+    socket.on('post:update', onPostUpdated);
+    socket.on('post:delete', onPostDeleted);
+    socket.on('group:new', onNewGroup);
+    socket.on('group:update', onGroupUpdated);
+    socket.on('group:deleted', onGroupDeleted);
+    socket.on('group:member-removed', onGroupMemberRemoved);
+    socket.on('story:new', onNewStory);
+    socket.on('story:delete', onStoryDeleted);
+    socket.on('friend-request:rejected', onFriendRequestRejected);
+    socket.on('friend-request:cancelled', onFriendRequestCancelled);
+    socket.on('friend:removed', onFriendRemoved);
+    socket.on('report:new', onNewReport);
+    socket.on('report:update', onReportUpdated);
+    socket.on('user:banned', onBanned);
+    socket.on('comment:delete', onCommentDeleted);
 
     return () => {
       socket.off('message:new', onNewMessage);
       socket.off('notification:new', onNewNotification);
       socket.off('conversation:cleared', onConversationCleared);
       socket.off('comment:new', onNewComment);
+      socket.off('post:new', onNewPost);
+      socket.off('post:update', onPostUpdated);
+      socket.off('post:delete', onPostDeleted);
+      socket.off('group:new', onNewGroup);
+      socket.off('group:update', onGroupUpdated);
+      socket.off('group:deleted', onGroupDeleted);
+      socket.off('group:member-removed', onGroupMemberRemoved);
+      socket.off('story:new', onNewStory);
+      socket.off('story:delete', onStoryDeleted);
+      socket.off('friend-request:rejected', onFriendRequestRejected);
+      socket.off('friend-request:cancelled', onFriendRequestCancelled);
+      socket.off('friend:removed', onFriendRemoved);
+      socket.off('report:new', onNewReport);
+      socket.off('report:update', onReportUpdated);
+      socket.off('user:banned', onBanned);
+      socket.off('comment:delete', onCommentDeleted);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser?.id]);
@@ -456,6 +592,22 @@ export const SocialProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   // --- COMMENTS ---
+  const [loadedCommentPostIds, setLoadedCommentPostIds] = useState<Set<string>>(new Set());
+
+  // Lazily loads one post's comment thread — called by PostCard the first time a post's
+  // comments actually need to be shown, instead of the app eagerly fetching every comment
+  // on every visible post at login.
+  const fetchCommentsForPost = async (postId: string) => {
+    if (loadedCommentPostIds.has(postId)) return;
+    try {
+      const { comments: postComments } = await api.get<{ comments: Comment[] }>(`/comments?postId=${postId}`);
+      setComments((prev) => ({ ...prev, [postId]: postComments }));
+      setLoadedCommentPostIds((prev) => new Set(prev).add(postId));
+    } catch {
+      // silent — the comment section just stays empty/retries next mount
+    }
+  };
+
   const addComment = async (postId: string, content: string, image?: string, parentId?: string, taggedUserIds?: string[]) => {
     if (!content.trim() && !image) return;
     try {
@@ -1114,6 +1266,7 @@ export const SocialProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         fetchPostById,
         sharePost,
         comments,
+        fetchCommentsForPost,
         addComment,
         deleteComment,
         toggleLikeComment,

@@ -155,6 +155,7 @@ export interface FriendRequest {
   id: string;
   sender: User;
   receiverId: string;
+  receiver?: User; // only present on "requests I sent"
   createdAt: string;
   mutualFriendsCount: number;
 }

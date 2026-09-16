@@ -17,5 +17,10 @@ const notificationSchema = new Schema(
   { timestamps: { createdAt: true, updatedAt: false } }
 );
 
+// The notifications list is always "mine, newest first" and the bell badge is always
+// "mine, unread" — both need this compound index to stay fast as the collection grows.
+notificationSchema.index({ user: 1, createdAt: -1 });
+notificationSchema.index({ user: 1, isRead: 1 });
+
 export const NotificationModel =
   mongoose.models.Notification || mongoose.model('Notification', notificationSchema);

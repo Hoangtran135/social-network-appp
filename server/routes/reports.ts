@@ -4,7 +4,7 @@ import { UserModel } from '../models/User';
 import { NotificationModel } from '../models/Notification';
 import { requireAuth, AuthedRequest } from '../middleware/auth';
 import { serializeReport, serializeAnnouncement, serializeNotification } from '../serialize';
-import { emitToUser } from '../realtime';
+import { emitToUser, emitToUsers } from '../realtime';
 
 export const reportsRouter = Router();
 reportsRouter.use(requireAuth);
@@ -36,6 +36,14 @@ reportsRouter.post('/', async (req: AuthedRequest, res) => {
   });
   await report.populate('reporter');
   res.json({ report: serializeReport(report) });
+
+  // Admins watching the reports page shouldn't need to reload to see a brand-new report.
+  const admins = await UserModel.find({ role: 'admin' }, '_id');
+  emitToUsers(
+    admins.map((a) => a._id.toString()),
+    'report:new',
+    { report: serializeReport(report) }
+  );
 });
 
 reportsRouter.patch('/:id/resolve', async (req: AuthedRequest, res) => {
@@ -46,6 +54,14 @@ reportsRouter.patch('/:id/resolve', async (req: AuthedRequest, res) => {
     { new: true }
   ).populate('reporter');
   res.json({ report: report && serializeReport(report) });
+  if (report) {
+    const admins = await UserModel.find({ role: 'admin' }, '_id');
+    emitToUsers(
+      admins.map((a) => a._id.toString()),
+      'report:update',
+      { report: serializeReport(report) }
+    );
+  }
 });
 
 reportsRouter.patch('/:id/dismiss', async (req: AuthedRequest, res) => {
@@ -56,6 +72,14 @@ reportsRouter.patch('/:id/dismiss', async (req: AuthedRequest, res) => {
     { new: true }
   ).populate('reporter');
   res.json({ report: report && serializeReport(report) });
+  if (report) {
+    const admins = await UserModel.find({ role: 'admin' }, '_id');
+    emitToUsers(
+      admins.map((a) => a._id.toString()),
+      'report:update',
+      { report: serializeReport(report) }
+    );
+  }
 });
 
 reportsRouter.get('/announcements', async (_req, res) => {

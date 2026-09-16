@@ -30,7 +30,7 @@ type ProfileTab = 'posts' | 'friends' | 'photos' | 'about';
 
 export const ProfilePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { currentUser, allUsers, blockUser, unblockUser } = useAuth();
+  const { currentUser, allUsers, blockUser, unblockUser, fetchUserById } = useAuth();
   const {
     posts,
     friends,
@@ -53,6 +53,16 @@ export const ProfilePage: React.FC = () => {
 
   // Find user by id
   const targetUser = allUsers.find((u) => u.id === id) || (currentUser?.id === id ? currentUser : null);
+  const [isFetchingUser, setIsFetchingUser] = useState(false);
+
+  // `allUsers` is now a bounded page, not the whole table — fetch this one specifically
+  // if a direct profile link points somewhere outside that page.
+  useEffect(() => {
+    if (targetUser || !id) return;
+    setIsFetchingUser(true);
+    fetchUserById(id).finally(() => setIsFetchingUser(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, targetUser]);
 
   // Friends of the profile being viewed (not the viewer's own friends list)
   useEffect(() => {
@@ -65,6 +75,14 @@ export const ProfilePage: React.FC = () => {
   }, [targetUser?.id, currentUser?.id, friends]);
 
   if (!targetUser) {
+    if (isFetchingUser) {
+      return (
+        <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 shadow-xs max-w-xl mx-auto my-12">
+          <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-sm text-slate-500">Đang tải hồ sơ...</p>
+        </div>
+      );
+    }
     return (
       <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 shadow-xs max-w-xl mx-auto my-12">
         <div className="w-16 h-16 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center mx-auto mb-4">

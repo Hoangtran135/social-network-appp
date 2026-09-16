@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSocial } from '../../context/SocialContext';
 import { useAuth } from '../auth/AuthContext';
+import { api } from '../../utils/api';
 import {
   Users,
   UserCheck,
@@ -31,37 +32,28 @@ export const FriendsPage: React.FC = () => {
     sendFriendRequest,
     getOrCreateConversation,
   } = useSocial();
-  const { currentUser, allUsers } = useAuth();
+  const { currentUser } = useAuth();
   const navigate = useNavigate();
   const confirm = useConfirm();
 
   const [activeTab, setActiveTab] = useState<FriendsTab>('list');
   const [searchQuery, setSearchQuery] = useState('');
+  const [suggestions, setSuggestions] = useState<User[]>([]);
 
   // Requests addressed to the current user
   const incomingRequests = friendRequests;
 
-  // IDs of users that are already friends or have a pending request between us
-  const friendIds = friends.map((f) => f.id);
-  const pendingUserIds = [
-    ...friendRequests.map((r) => r.sender.id),
-    ...sentFriendRequests.map((r) => r.receiverId),
-  ];
-
-  // Suggestions: users who are not current user, not friends, have no pending requests,
-  // and aren't the AI bot account (it's not a "friend" you add — it's a system chat entry).
-  const suggestions = allUsers.filter(
-    (u) =>
-      u.id !== currentUser?.id &&
-      !u.isBot &&
-      !friendIds.includes(u.id) &&
-      !pendingUserIds.includes(u.id)
-  );
+  // Server already excludes self/friends/pending/blocked/bot — no client-side filtering
+  // of a full user list needed (that list doesn't even exist client-side anymore).
+  useEffect(() => {
+    api
+      .get<{ users: User[] }>('/friends/suggestions?limit=24')
+      .then(({ users }) => setSuggestions(users))
+      .catch(() => setSuggestions([]));
+  }, [friends.length, sentFriendRequests.length]);
 
   // People I've sent a request to, still pending their response
-  const pendingOutgoing = sentFriendRequests.filter(
-    (r) => allUsers.some((u) => u.id === r.receiverId)
-  );
+  const pendingOutgoing = sentFriendRequests;
 
   // Filtered friends
   const filteredFriends = friends.filter(
@@ -318,7 +310,7 @@ export const FriendsPage: React.FC = () => {
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {pendingOutgoing.map((req) => {
-                    const target = allUsers.find((u) => u.id === req.receiverId);
+                    const target = req.receiver;
                     if (!target) return null;
                     return (
                       <div

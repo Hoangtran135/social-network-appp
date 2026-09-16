@@ -20,4 +20,9 @@ const storySchema = new Schema(
   { timestamps: { createdAt: true, updatedAt: false } }
 );
 
+// Expired stories are filtered out on every fetch; a TTL index lets MongoDB itself garbage
+// collect them instead of the collection growing forever with dead rows we filter in app code.
+storySchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+storySchema.index({ user: 1, createdAt: -1 });
+
 export const StoryModel = mongoose.models.Story || mongoose.model('Story', storySchema);

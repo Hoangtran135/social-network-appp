@@ -13,4 +13,8 @@ const commentSchema = new Schema(
   { timestamps: true }
 );
 
+// The per-post comment fetch (GET /comments?postId=) is the hot path — indexed so it stays
+// fast regardless of how many comments the collection accumulates overall.
+commentSchema.index({ post: 1, createdAt: 1 });
+
 export const CommentModel = mongoose.models.Comment || mongoose.model('Comment', commentSchema);

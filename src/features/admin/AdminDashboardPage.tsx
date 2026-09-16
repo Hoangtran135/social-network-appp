@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSocial } from '../../context/SocialContext';
 import { useAuth } from '../auth/AuthContext';
+import { api } from '../../utils/api';
+import { User } from '../../types';
 import {
   Users,
   FileText,
@@ -17,16 +19,27 @@ import { Link } from 'react-router-dom';
 import { timeAgo } from '../../utils/time';
 
 export const AdminDashboardPage: React.FC = () => {
-  const { allUsers } = useAuth();
-  const { posts, comments, groups, reports, systemAnnouncements, createAnnouncement } = useSocial();
+  const { groups, reports, systemAnnouncements, createAnnouncement } = useSocial();
 
   const [annTitle, setAnnTitle] = useState('');
   const [annMessage, setAnnMessage] = useState('');
   const [annType, setAnnType] = useState<'info' | 'warning' | 'alert'>('info');
 
-  const totalComments = Object.values(comments).reduce((acc, cList) => acc + cList.length, 0);
+  // Real totals via dedicated count endpoints — the client no longer holds every user/post/
+  // comment in memory just to display a number, so these can't be derived locally anymore.
+  const [userStats, setUserStats] = useState({ total: 0, online: 0, banned: 0, admins: 0 });
+  const [postTotal, setPostTotal] = useState(0);
+  const [commentTotal, setCommentTotal] = useState(0);
+  const [onlineUsers, setOnlineUsers] = useState<User[]>([]);
+
+  useEffect(() => {
+    api.get<typeof userStats>('/users/stats').then(setUserStats).catch(() => {});
+    api.get<{ total: number }>('/posts/stats').then(({ total }) => setPostTotal(total)).catch(() => {});
+    api.get<{ total: number }>('/comments/stats').then(({ total }) => setCommentTotal(total)).catch(() => {});
+    api.get<{ users: User[] }>('/users?online=true&limit=30').then(({ users }) => setOnlineUsers(users)).catch(() => {});
+  }, []);
+
   const pendingReports = reports.filter((r) => r.status === 'pending');
-  const onlineUsers = allUsers.filter((u) => u.isOnline);
 
   const handleBroadcast = (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,21 +52,21 @@ export const AdminDashboardPage: React.FC = () => {
   const statCards = [
     {
       label: 'Tổng người dùng',
-      value: allUsers.length,
+      value: userStats.total,
       icon: Users,
       color: 'from-blue-600 to-indigo-600',
       link: '/admin/users',
     },
     {
       label: 'Tổng bài viết',
-      value: posts.length,
+      value: postTotal,
       icon: FileText,
       color: 'from-emerald-600 to-teal-600',
       link: '/admin/posts',
     },
     {
       label: 'Bình luận & Thảo luận',
-      value: totalComments,
+      value: commentTotal,
       icon: MessageSquare,
       color: 'from-violet-600 to-purple-600',
       link: '/admin/comments',
@@ -181,7 +194,7 @@ export const AdminDashboardPage: React.FC = () => {
               <div className="flex items-center gap-2">
                 <Radio className="w-5 h-5 text-emerald-400" />
                 <h3 className="font-bold text-slate-200 text-sm">
-                  Đang trực tuyến ({onlineUsers.length}/{allUsers.length})
+                  Đang trực tuyến ({userStats.online}/{userStats.total})
                 </h3>
               </div>
               <Link

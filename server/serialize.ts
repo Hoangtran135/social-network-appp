@@ -148,6 +148,9 @@ export function serializeFriendRequest(r: any, mutualFriendsCount = 0) {
     id: id(r),
     sender: serializeUser(r.sender),
     receiverId: id(r.receiver),
+    // Only populated for "requests I sent" — lets the UI show who it went to without
+    // depending on that receiver happening to be in the client's (now bounded) `allUsers`.
+    receiver: r.receiver?.name ? serializeUser(r.receiver) : undefined,
     createdAt: r.createdAt,
     mutualFriendsCount,
   };

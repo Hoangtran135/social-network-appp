@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useRef, useState, useCallb
 import { useAuth } from '../auth/AuthContext';
 import { useSocial } from '../../context/SocialContext';
 import { getSocket, refreshSocketAuth } from '../../utils/socket';
+import { api } from '../../utils/api';
 import { User } from '../../types';
 
 type CallType = 'audio' | 'video';
@@ -192,14 +193,28 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     refreshSocketAuth();
     const socket = getSocket();
 
-    const onIncoming = (data: { fromUserId: string; callType: CallType; conversationId?: string }) => {
+    const onIncoming = async (data: { fromUserId: string; callType: CallType; conversationId?: string }) => {
       if (activeCallRef.current) {
         // Already on a call — auto-reject.
         socket.emit('call:reject', { toUserId: data.fromUserId });
         return;
       }
-      const peer = allUsers.find((u) => u.id === data.fromUserId);
-      if (!peer) return;
+      let peer = allUsers.find((u) => u.id === data.fromUserId);
+      if (!peer) {
+        // Not in our already-loaded user list (new account, stale cache) — fetch them
+        // directly instead of just dropping the call, which used to leave the caller
+        // stuck ringing forever with no rejection ever sent back.
+        try {
+          const res = await api.get<{ user: User }>(`/users/${data.fromUserId}`);
+          peer = res.user;
+        } catch {
+          // fall through — still no peer, reject below
+        }
+      }
+      if (!peer) {
+        socket.emit('call:reject', { toUserId: data.fromUserId });
+        return;
+      }
       createPeerConnection(data.fromUserId);
       setActiveCall({
         status: 'ringing-incoming',

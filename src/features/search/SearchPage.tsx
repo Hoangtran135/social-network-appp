@@ -3,6 +3,8 @@ import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { useSocial } from '../../context/SocialContext';
 import { useAuth } from '../auth/AuthContext';
 import { PostCard } from '../posts/PostCard';
+import { api } from '../../utils/api';
+import { User, Post, Group } from '../../types';
 import {
   Search,
   Users,
@@ -11,6 +13,7 @@ import {
   Sparkles,
   UserPlus,
   MessageCircle,
+  Loader2,
 } from 'lucide-react';
 
 type SearchTab = 'all' | 'users' | 'posts' | 'groups';
@@ -21,13 +24,52 @@ export const SearchPage: React.FC = () => {
 
   const [query, setQuery] = useState(initialQuery);
   const [activeTab, setActiveTab] = useState<SearchTab>('all');
+  const [matchingUsers, setMatchingUsers] = useState<User[]>([]);
+  const [matchingPosts, setMatchingPosts] = useState<Post[]>([]);
+  const [matchingGroups, setMatchingGroups] = useState<Group[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
 
-  const { allUsers, currentUser } = useAuth();
-  const { posts, groups, friends, sendFriendRequest, getOrCreateConversation, joinGroup } = useSocial();
+  const { currentUser } = useAuth();
+  const { friends, sendFriendRequest, getOrCreateConversation, joinGroup } = useSocial();
   const navigate = useNavigate();
 
   useEffect(() => {
     setQuery(initialQuery);
+  }, [initialQuery]);
+
+  // Queries the server directly rather than filtering whatever happens to already be loaded
+  // client-side — that used to miss any user/post/group outside the current page/feed window.
+  useEffect(() => {
+    const trimmed = initialQuery.trim();
+    if (!trimmed) {
+      setMatchingUsers([]);
+      setMatchingPosts([]);
+      setMatchingGroups([]);
+      return;
+    }
+    let cancelled = false;
+    setIsSearching(true);
+    api
+      .get<{ users: User[]; posts: Post[]; groups: Group[] }>(`/search?q=${encodeURIComponent(trimmed)}`)
+      .then(({ users, posts, groups }) => {
+        if (cancelled) return;
+        setMatchingUsers(users);
+        setMatchingPosts(posts);
+        setMatchingGroups(groups);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setMatchingUsers([]);
+          setMatchingPosts([]);
+          setMatchingGroups([]);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsSearching(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [initialQuery]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -36,26 +78,6 @@ export const SearchPage: React.FC = () => {
   };
 
   const friendIds = friends.map((f) => f.id);
-
-  // Search Results
-  const matchingUsers = allUsers.filter(
-    (u) =>
-      u.name.toLowerCase().includes(query.toLowerCase()) ||
-      u.username.toLowerCase().includes(query.toLowerCase()) ||
-      u.bio?.toLowerCase().includes(query.toLowerCase())
-  );
-
-  const matchingPosts = posts.filter(
-    (p) =>
-      p.content.toLowerCase().includes(query.toLowerCase()) ||
-      p.author.name.toLowerCase().includes(query.toLowerCase())
-  );
-
-  const matchingGroups = groups.filter(
-    (g) =>
-      g.name.toLowerCase().includes(query.toLowerCase()) ||
-      g.description.toLowerCase().includes(query.toLowerCase())
-  );
 
   const totalResults = matchingUsers.length + matchingPosts.length + matchingGroups.length;
 
@@ -137,7 +159,12 @@ export const SearchPage: React.FC = () => {
         </div>
 
         {/* Results Stream */}
-        {!query.trim() ? (
+        {isSearching ? (
+          <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 shadow-xs">
+            <Loader2 className="w-8 h-8 text-blue-600 animate-spin mx-auto mb-3" />
+            <h3 className="text-base font-bold text-slate-800">Đang tìm kiếm...</h3>
+          </div>
+        ) : !query.trim() ? (
           <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 shadow-xs">
             <div className="w-16 h-16 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mx-auto mb-3">
               <Search className="w-8 h-8" />

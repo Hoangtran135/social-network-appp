@@ -24,6 +24,8 @@ const announcementSchema = new Schema(
   { timestamps: { createdAt: true, updatedAt: false } }
 );
 
+reportSchema.index({ status: 1, createdAt: -1 });
+
 export const ReportModel = mongoose.models.Report || mongoose.model('Report', reportSchema);
 export const AnnouncementModel =
   mongoose.models.Announcement || mongoose.model('Announcement', announcementSchema);

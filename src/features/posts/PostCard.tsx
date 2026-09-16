@@ -56,6 +56,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
     getOrCreateConversation,
     deletePost,
     comments,
+    fetchCommentsForPost,
     addComment,
     deleteComment,
     toggleLikeComment,
@@ -66,7 +67,9 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
 
   const [showOptions, setShowOptions] = useState(false);
   const [showReactionsMenu, setShowReactionsMenu] = useState(false);
-  const [showComments, setShowComments] = useState(true);
+  // Collapsed by default — with hundreds/thousands of posts in a feed, eagerly fetching
+  // every single one's comments on mount would mean one request per rendered PostCard.
+  const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [commentImage, setCommentImage] = useState('');
   const [isUploadingCommentImage, setIsUploadingCommentImage] = useState(false);
@@ -105,6 +108,12 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
     document.addEventListener('mousedown', handleOutsideClick);
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, []);
+
+  // Fetch this post's comments the moment the thread is actually opened, not on every
+  // post mount — fetchCommentsForPost itself no-ops if already loaded.
+  useEffect(() => {
+    if (showComments) fetchCommentsForPost(post.id);
+  }, [showComments, post.id]);
 
   const handleCommentSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -427,7 +436,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
             onClick={() => setShowComments(!showComments)}
             className="hover:underline hover:text-slate-700 font-medium"
           >
-            {postComments.length} bình luận
+            {post.commentsCount} bình luận
           </button>
           <span>·</span>
           <span>{post.sharesCount} lượt chia sẻ</span>

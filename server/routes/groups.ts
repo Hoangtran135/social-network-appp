@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { GroupModel } from '../models/Group';
+import { UserModel } from '../models/User';
 import { GroupJoinRequestModel } from '../models/GroupJoinRequest';
 import { GroupInviteModel } from '../models/GroupInvite';
 import { FriendshipModel } from '../models/FriendRequest';
@@ -9,6 +10,7 @@ import { requireAuth, AuthedRequest } from '../middleware/auth';
 import { validateBody } from '../middleware/validate';
 import { createGroupSchema, groupInviteSchema, groupPromoteSchema, groupRulesSchema } from '../schemas';
 import { serializeGroup, serializeGroupJoinRequest } from '../serialize';
+import { emitToUser, emitToUsers, broadcastToAll } from '../realtime';
 
 export const groupsRouter = Router();
 groupsRouter.use(requireAuth);
@@ -82,10 +84,24 @@ groupsRouter.post('/', validateBody(createGroupSchema), async (req: AuthedReques
   });
   await group.populate('members.user creator');
   res.json({ group: serializeGroup(group, req.userId) });
+  // Public groups show up in everyone's "Discover" tab live; private ones stay invisible
+  // until an invite/join-request brings someone in individually.
+  if (group.privacy === 'public') broadcastToAll('group:new', { group: serializeGroup(group, undefined) }, req.userId);
 });
 
 function findMembership(group: any, userId: string | undefined) {
   return group.members.find((m: any) => m.user._id.toString() === userId || m.user.toString() === userId);
+}
+
+// Pushes the group's current state live to every member — used after membership/role/rules
+// changes so everyone already in the group sees it without a manual refresh. Each recipient's
+// own isMember/isAdmin flags stay whatever their client already has (they're a current member
+// either way), only the shared fields (members list, rules, ...) actually need to travel.
+function broadcastGroupUpdate(group: any, excludeUserId?: string) {
+  const memberIds = (group.members || [])
+    .map((m: any) => (m.user?._id ? m.user._id.toString() : m.user?.toString?.() || m.user))
+    .filter((uid: string) => uid !== excludeUserId);
+  emitToUsers(memberIds, 'group:update', { group: serializeGroup(group, undefined) });
 }
 
 groupsRouter.post('/:id/join', async (req: AuthedRequest, res) => {
@@ -108,6 +124,7 @@ groupsRouter.post('/:id/join', async (req: AuthedRequest, res) => {
     await group.populate('members.user creator');
     await pendingInvite.deleteOne();
     res.json({ group: serializeGroup(group, req.userId) });
+    broadcastGroupUpdate(group, req.userId);
     return;
   }
 
@@ -132,6 +149,14 @@ groupsRouter.post('/:id/join', async (req: AuthedRequest, res) => {
   );
 
   res.json({ group: serializeGroup(group, req.userId, { hasPendingJoinRequest: true }) });
+  // Let admins/moderators already viewing the group see the new request badge without reload.
+  const requestsCount = await GroupJoinRequestModel.countDocuments({ group: group._id });
+  admins.forEach((m: any) => {
+    const adminId = m.user?._id ? m.user._id.toString() : m.user.toString();
+    emitToUser(adminId, 'group:update', {
+      group: serializeGroup(group, adminId, { joinRequestsCount: requestsCount }),
+    });
+  });
 });
 
 groupsRouter.get('/:id/join-requests', async (req: AuthedRequest, res) => {
@@ -183,6 +208,7 @@ groupsRouter.post('/:id/join-requests/:userId/approve', async (req: AuthedReques
   });
 
   res.json({ group: serializeGroup(group, req.userId) });
+  broadcastGroupUpdate(group, req.userId);
 });
 
 groupsRouter.post('/:id/join-requests/:userId/reject', async (req: AuthedRequest, res) => {
@@ -219,6 +245,7 @@ groupsRouter.post('/:id/leave', async (req: AuthedRequest, res) => {
   group.members = group.members.filter((m: any) => m.user._id.toString() !== req.userId) as any;
   await group.save();
   res.json({ group: serializeGroup(group, req.userId) });
+  broadcastGroupUpdate(group, req.userId);
 });
 
 groupsRouter.post('/:id/members/:userId/promote', validateBody(groupPromoteSchema), async (req: AuthedRequest, res) => {
@@ -254,6 +281,7 @@ groupsRouter.post('/:id/members/:userId/promote', validateBody(groupPromoteSchem
   });
 
   res.json({ group: serializeGroup(group, req.userId) });
+  broadcastGroupUpdate(group, req.userId);
 });
 
 groupsRouter.post('/:id/invite', validateBody(groupInviteSchema), async (req: AuthedRequest, res) => {
@@ -300,6 +328,7 @@ groupsRouter.post('/:id/invite', validateBody(groupInviteSchema), async (req: Au
       targetType: 'group',
     });
     res.json({ group: serializeGroup(group, req.userId) });
+    broadcastGroupUpdate(group, req.userId);
     return;
   }
 
@@ -319,6 +348,10 @@ groupsRouter.post('/:id/invite', validateBody(groupInviteSchema), async (req: Au
   });
 
   res.json({ group: serializeGroup(group, req.userId) });
+  // The invitee doesn't have this group in their local list at all yet — send it to them
+  // directly (with their own viewer-specific hasPendingInvite flag) rather than the generic
+  // member broadcast, which would be wrong for someone who isn't a member yet.
+  emitToUser(userId, 'group:update', { group: serializeGroup(group, userId, { hasPendingInvite: true }) });
 });
 
 groupsRouter.post('/:id/invites/accept', async (req: AuthedRequest, res) => {
@@ -339,6 +372,7 @@ groupsRouter.post('/:id/invites/accept', async (req: AuthedRequest, res) => {
   }
   await invite.deleteOne();
   res.json({ group: serializeGroup(group, req.userId) });
+  broadcastGroupUpdate(group, req.userId);
 });
 
 groupsRouter.post('/:id/invites/decline', async (req: AuthedRequest, res) => {
@@ -379,6 +413,10 @@ groupsRouter.post('/:id/members/:userId/remove', async (req: AuthedRequest, res)
   await group.save();
   await group.populate('members.user creator');
   res.json({ group: serializeGroup(group, req.userId) });
+  broadcastGroupUpdate(group, req.userId);
+  // The removed member isn't in `members` anymore so the broadcast above skips them —
+  // tell them directly that they're out.
+  emitToUser(req.params.userId, 'group:member-removed', { groupId: group._id.toString() });
 });
 
 groupsRouter.patch('/:id/rules', validateBody(groupRulesSchema), async (req: AuthedRequest, res) => {
@@ -395,6 +433,7 @@ groupsRouter.patch('/:id/rules', validateBody(groupRulesSchema), async (req: Aut
   group.rules = req.body.rules;
   await group.save();
   res.json({ group: serializeGroup(group, req.userId) });
+  broadcastGroupUpdate(group, req.userId);
 });
 
 groupsRouter.delete('/:id', async (req: AuthedRequest, res) => {
@@ -404,12 +443,17 @@ groupsRouter.delete('/:id', async (req: AuthedRequest, res) => {
     return;
   }
   if (group.creator.toString() !== req.userId) {
-    res.status(403).json({ error: 'Chỉ người tạo nhóm mới có thể xóa nhóm.' });
-    return;
+    const me = await UserModel.findById(req.userId);
+    if (!me || me.role !== 'admin') {
+      res.status(403).json({ error: 'Chỉ người tạo nhóm hoặc quản trị viên mới có thể xóa nhóm.' });
+      return;
+    }
   }
+  const memberIds = group.members.map((m: any) => m.user.toString()).filter((uid: string) => uid !== req.userId);
   await group.deleteOne();
   await PostModel.deleteMany({ group: req.params.id });
   await GroupJoinRequestModel.deleteMany({ group: req.params.id });
   await GroupInviteModel.deleteMany({ group: req.params.id });
   res.json({ ok: true });
+  emitToUsers(memberIds, 'group:deleted', { groupId: req.params.id });
 });

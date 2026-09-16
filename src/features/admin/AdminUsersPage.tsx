@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useSocial } from '../../context/SocialContext';
+import { api } from '../../utils/api';
+import { User } from '../../types';
 import { timeAgo } from '../../utils/time';
 import {
   Users,
@@ -13,34 +15,76 @@ import {
   ExternalLink,
   Radio,
   Bot,
+  Loader2,
 } from 'lucide-react';
 import { useConfirm } from '../../common/ConfirmDialogProvider';
 
+const PAGE_SIZE = 60;
+
 export const AdminUsersPage: React.FC = () => {
-  const { allUsers, currentUser, toggleBanUser, toggleUserRole } = useAuth();
+  const { currentUser, toggleBanUser, toggleUserRole } = useAuth();
   const { showToast } = useSocial();
   const confirm = useConfirm();
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'user' | 'online'>('all');
 
-  const onlineCount = allUsers.filter((u) => u.isOnline).length;
+  // A real paginated + server-filtered listing — the old version loaded every single user
+  // into the browser to filter client-side, which doesn't hold up past a few thousand accounts.
+  const [users, setUsers] = useState<User[]>([]);
+  const [total, setTotal] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [stats, setStats] = useState({ total: 0, online: 0, banned: 0, admins: 0 });
 
-  const filteredUsers = allUsers.filter((u) => {
-    const matchSearch =
-      u.name.toLowerCase().includes(search.toLowerCase()) ||
-      u.username.toLowerCase().includes(search.toLowerCase()) ||
-      u.email.toLowerCase().includes(search.toLowerCase());
-    const matchRole =
-      roleFilter === 'all' ||
-      (roleFilter === 'online' ? !!u.isOnline : u.role === roleFilter);
-    return matchSearch && matchRole;
-  });
+  const fetchStats = useCallback(() => {
+    api
+      .get<{ total: number; online: number; banned: number; admins: number }>('/users/stats')
+      .then(setStats)
+      .catch(() => {});
+  }, []);
+
+  const fetchPage = useCallback((skip: number, append: boolean) => {
+    const params = new URLSearchParams({ limit: String(PAGE_SIZE), skip: String(skip) });
+    if (search.trim()) params.set('q', search.trim());
+    if (roleFilter === 'admin' || roleFilter === 'user') params.set('role', roleFilter);
+    if (append) setIsLoadingMore(true);
+    else setIsLoading(true);
+    api
+      .get<{ users: User[]; total: number }>(`/users?${params.toString()}`)
+      .then(({ users: page, total: pageTotal }) => {
+        setUsers((prev) => (append ? [...prev, ...page] : page));
+        setTotal(pageTotal);
+      })
+      .catch(() => {})
+      .finally(() => {
+        setIsLoading(false);
+        setIsLoadingMore(false);
+      });
+  }, [search, roleFilter]);
+
+  // Debounced search — refetch from the server rather than filtering an in-memory list.
+  useEffect(() => {
+    const t = setTimeout(() => fetchPage(0, false), 300);
+    return () => clearTimeout(t);
+  }, [fetchPage]);
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
+
+  const displayedUsers = roleFilter === 'online' ? users.filter((u) => u.isOnline) : users;
+
+  const patchUser = (userId: string, patch: Partial<User>) => {
+    setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, ...patch } : u)));
+  };
 
   const handleToggleBan = async (userId: string, userName: string, isBanned?: boolean) => {
     if (!isBanned && !(await confirm(`Khóa tài khoản của ${userName}? Người dùng này sẽ không thể đăng nhập.`))) {
       return;
     }
-    toggleBanUser(userId);
+    await toggleBanUser(userId);
+    patchUser(userId, { isBanned: !isBanned });
+    fetchStats();
     showToast(
       isBanned ? `Đã mở khóa tài khoản của ${userName}` : `Đã khóa tài khoản của ${userName}`,
       isBanned ? 'success' : 'info'
@@ -55,7 +99,9 @@ export const AdminUsersPage: React.FC = () => {
     ) {
       return;
     }
-    toggleUserRole(userId);
+    await toggleUserRole(userId);
+    patchUser(userId, { role: currentRole === 'admin' ? 'user' : 'admin' });
+    fetchStats();
     showToast(`Đã chuyển quyền của ${userName} thành ${nextRole}`, 'success');
   };
 
@@ -75,11 +121,11 @@ export const AdminUsersPage: React.FC = () => {
 
         <div className="flex items-center gap-3">
           <span className="px-3.5 py-1.5 rounded-xl bg-purple-950/60 border border-purple-800/60 text-purple-300 text-xs font-bold font-mono">
-            Tổng: {allUsers.length} tài khoản
+            Tổng: {stats.total} tài khoản
           </span>
           <span className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-950/60 border border-emerald-800/60 text-emerald-300 text-xs font-bold font-mono">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            {onlineCount} đang online
+            {stats.online} đang online
           </span>
         </div>
       </div>
@@ -106,7 +152,7 @@ export const AdminUsersPage: React.FC = () => {
                 : 'bg-slate-900 text-slate-400 hover:text-slate-200'
             }`}
           >
-            Tất cả ({allUsers.length})
+            Tất cả ({stats.total})
           </button>
           <button
             onClick={() => setRoleFilter('admin')}
@@ -116,7 +162,7 @@ export const AdminUsersPage: React.FC = () => {
                 : 'bg-slate-900 text-slate-400 hover:text-slate-200'
             }`}
           >
-            Quản trị viên ({allUsers.filter((u) => u.role === 'admin').length})
+            Quản trị viên ({stats.admins})
           </button>
           <button
             onClick={() => setRoleFilter('user')}
@@ -126,7 +172,7 @@ export const AdminUsersPage: React.FC = () => {
                 : 'bg-slate-900 text-slate-400 hover:text-slate-200'
             }`}
           >
-            Người dùng ({allUsers.filter((u) => u.role === 'user').length})
+            Người dùng ({stats.total - stats.admins})
           </button>
           <button
             onClick={() => setRoleFilter('online')}
@@ -137,7 +183,7 @@ export const AdminUsersPage: React.FC = () => {
             }`}
           >
             <Radio className="w-3 h-3" />
-            Đang online ({onlineCount})
+            Đang online ({stats.online})
           </button>
         </div>
       </div>
@@ -158,131 +204,159 @@ export const AdminUsersPage: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-900">
-              {filteredUsers.map((user) => {
-                const isSelf = user.id === currentUser?.id;
+              {isLoading ? (
+                <tr>
+                  <td colSpan={7} className="py-12 text-center text-slate-500">
+                    <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />
+                    Đang tải...
+                  </td>
+                </tr>
+              ) : displayedUsers.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-12 text-center text-slate-500">
+                    Không tìm thấy người dùng nào phù hợp.
+                  </td>
+                </tr>
+              ) : (
+                displayedUsers.map((user) => {
+                  const isSelf = user.id === currentUser?.id;
 
-                return (
-                  <tr key={user.id} className="hover:bg-slate-900/50 transition-colors">
-                    <td className="py-3.5 px-4">
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={user.avatar}
-                          alt={user.name}
-                          className="w-9 h-9 rounded-full object-cover border border-slate-700"
-                        />
-                        <div className="min-w-0">
-                          <div className="font-bold text-slate-200 truncate flex items-center gap-1.5">
-                            <span>{user.name}</span>
-                            {isSelf && (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-950 text-blue-400 border border-blue-800">
-                                Bạn
-                              </span>
-                            )}
+                  return (
+                    <tr key={user.id} className="hover:bg-slate-900/50 transition-colors">
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={user.avatar}
+                            alt={user.name}
+                            className="w-9 h-9 rounded-full object-cover border border-slate-700"
+                          />
+                          <div className="min-w-0">
+                            <div className="font-bold text-slate-200 truncate flex items-center gap-1.5">
+                              <span>{user.name}</span>
+                              {isSelf && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-950 text-blue-400 border border-blue-800">
+                                  Bạn
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[11px] text-slate-500 truncate">@{user.username}</div>
                           </div>
-                          <div className="text-[11px] text-slate-500 truncate">@{user.username}</div>
                         </div>
-                      </div>
-                    </td>
+                      </td>
 
-                    <td className="py-3.5 px-4 text-slate-400 font-mono hidden sm:table-cell">{user.email}</td>
+                      <td className="py-3.5 px-4 text-slate-400 font-mono hidden sm:table-cell">{user.email}</td>
 
-                    <td className="py-3.5 px-4">
-                      <span
-                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                          user.role === 'admin'
-                            ? 'bg-purple-950 text-purple-300 border border-purple-800'
-                            : 'bg-slate-900 text-slate-400 border border-slate-800'
-                        }`}
-                      >
-                        {user.isBot ? (
-                          <>
-                            <Bot className="w-3 h-3 text-indigo-400" />
-                            <span>Bot hệ thống</span>
-                          </>
-                        ) : user.role === 'admin' ? (
-                          <>
-                            <Shield className="w-3 h-3 text-purple-400" />
-                            <span>Quản trị viên</span>
-                          </>
-                        ) : (
-                          <>
-                            <UserCheck className="w-3 h-3 text-slate-400" />
-                            <span>Thành viên</span>
-                          </>
-                        )}
-                      </span>
-                    </td>
-
-                    <td className="py-3.5 px-4 text-slate-400 hidden md:table-cell">{timeAgo(user.joinDate)}</td>
-
-                    <td className="py-3.5 px-4 hidden md:table-cell">
-                      {user.isOnline ? (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-800">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                          <span>Online</span>
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-900 text-slate-500 border border-slate-800">
-                          <span className="w-1.5 h-1.5 rounded-full bg-slate-600" />
-                          <span>{user.lastActive ? timeAgo(user.lastActive) : 'Ngoại tuyến'}</span>
-                        </span>
-                      )}
-                    </td>
-
-                    <td className="py-3.5 px-4 hidden sm:table-cell">
-                      {user.isBanned ? (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-950 text-rose-400 border border-rose-800">
-                          <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
-                          <span>Đã khóa</span>
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-900 text-slate-400 border border-slate-800">
-                          <span>Bình thường</span>
-                        </span>
-                      )}
-                    </td>
-
-                    <td className="py-3.5 px-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <Link
-                          to={`/profile/${user.id}`}
-                          className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 transition-colors"
-                          title="Xem trang cá nhân"
+                      <td className="py-3.5 px-4">
+                        <span
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                            user.role === 'admin'
+                              ? 'bg-purple-950 text-purple-300 border border-purple-800'
+                              : 'bg-slate-900 text-slate-400 border border-slate-800'
+                          }`}
                         >
-                          <ExternalLink className="w-3.5 h-3.5" />
-                        </Link>
+                          {user.isBot ? (
+                            <>
+                              <Bot className="w-3 h-3 text-indigo-400" />
+                              <span>Bot hệ thống</span>
+                            </>
+                          ) : user.role === 'admin' ? (
+                            <>
+                              <Shield className="w-3 h-3 text-purple-400" />
+                              <span>Quản trị viên</span>
+                            </>
+                          ) : (
+                            <>
+                              <UserCheck className="w-3 h-3 text-slate-400" />
+                              <span>Thành viên</span>
+                            </>
+                          )}
+                        </span>
+                      </td>
 
-                        {!isSelf && !user.isBot && (
-                          <>
-                            <button
-                              onClick={() => handleToggleRole(user.id, user.name, user.role)}
-                              className="p-1.5 rounded-lg bg-purple-950/60 hover:bg-purple-900 text-purple-300 border border-purple-800/60 transition-colors text-[11px] font-bold px-2"
-                              title="Thay đổi vai trò"
-                            >
-                              {user.role === 'admin' ? 'Hạ quyền' : 'Thăng Admin'}
-                            </button>
+                      <td className="py-3.5 px-4 text-slate-400 hidden md:table-cell">{timeAgo(user.joinDate)}</td>
 
-                            <button
-                              onClick={() => handleToggleBan(user.id, user.name, user.isBanned)}
-                              className={`p-1.5 rounded-lg border transition-colors ${
-                                user.isBanned
-                                  ? 'bg-emerald-950/50 hover:bg-emerald-900 text-emerald-300 border-emerald-800/60'
-                                  : 'bg-rose-950/50 hover:bg-rose-900 text-rose-300 border-rose-800/60'
-                              }`}
-                              title={user.isBanned ? 'Mở khóa tài khoản' : 'Khóa tài khoản'}
-                            >
-                              {user.isBanned ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
-                            </button>
-                          </>
+                      <td className="py-3.5 px-4 hidden md:table-cell">
+                        {user.isOnline ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-800">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            <span>Online</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-900 text-slate-500 border border-slate-800">
+                            <span className="w-1.5 h-1.5 rounded-full bg-slate-600" />
+                            <span>{user.lastActive ? timeAgo(user.lastActive) : 'Ngoại tuyến'}</span>
+                          </span>
                         )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
+                      </td>
+
+                      <td className="py-3.5 px-4 hidden sm:table-cell">
+                        {user.isBanned ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-950 text-rose-400 border border-rose-800">
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
+                            <span>Đã khóa</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-900 text-slate-400 border border-slate-800">
+                            <span>Bình thường</span>
+                          </span>
+                        )}
+                      </td>
+
+                      <td className="py-3.5 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Link
+                            to={`/profile/${user.id}`}
+                            className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 transition-colors"
+                            title="Xem trang cá nhân"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </Link>
+
+                          {!isSelf && !user.isBot && (
+                            <>
+                              <button
+                                onClick={() => handleToggleRole(user.id, user.name, user.role)}
+                                className="p-1.5 rounded-lg bg-purple-950/60 hover:bg-purple-900 text-purple-300 border border-purple-800/60 transition-colors text-[11px] font-bold px-2"
+                                title="Thay đổi vai trò"
+                              >
+                                {user.role === 'admin' ? 'Hạ quyền' : 'Thăng Admin'}
+                              </button>
+
+                              <button
+                                onClick={() => handleToggleBan(user.id, user.name, user.isBanned)}
+                                className={`p-1.5 rounded-lg border transition-colors ${
+                                  user.isBanned
+                                    ? 'bg-emerald-950/50 hover:bg-emerald-900 text-emerald-300 border-emerald-800/60'
+                                    : 'bg-rose-950/50 hover:bg-rose-900 text-rose-300 border-rose-800/60'
+                                }`}
+                                title={user.isBanned ? 'Mở khóa tài khoản' : 'Khóa tài khoản'}
+                              >
+                                {user.isBanned ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
+
+        {!isLoading && users.length < total && roleFilter !== 'online' && (
+          <div className="flex justify-center p-4 border-t border-slate-900">
+            <button
+              onClick={() => fetchPage(users.length, true)}
+              disabled={isLoadingMore}
+              className="flex items-center gap-2 px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-bold border border-slate-800 disabled:opacity-60 transition-colors"
+            >
+              {isLoadingMore && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              <span>Tải thêm ({users.length}/{total})</span>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

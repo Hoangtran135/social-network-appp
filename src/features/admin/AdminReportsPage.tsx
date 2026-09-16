@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useSocial } from '../../context/SocialContext';
 import { useAuth } from '../auth/AuthContext';
@@ -11,24 +11,34 @@ import {
   Eye,
   X,
 } from 'lucide-react';
-import { ReportItem } from '../../types';
+import { ReportItem, User } from '../../types';
 import { useConfirm } from '../../common/ConfirmDialogProvider';
 
 export const AdminReportsPage: React.FC = () => {
   const { reports, resolveReport, dismissReport, deletePostAdmin, deleteCommentAdmin, posts, comments, groups, showToast } =
     useSocial();
-  const { allUsers } = useAuth();
+  const { allUsers, fetchUserById } = useAuth();
   const confirm = useConfirm();
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'resolved' | 'dismissed'>('all');
   const [search, setSearch] = useState('');
   const [viewingReport, setViewingReport] = useState<ReportItem | null>(null);
+  const [fetchedTargetUser, setFetchedTargetUser] = useState<User | null>(null);
+
+  // `allUsers` is a bounded page now — a reported user outside it needs a direct fetch
+  // rather than just showing "not found" in the moderation view.
+  useEffect(() => {
+    if (viewingReport?.targetType !== 'user') return;
+    if (allUsers.some((u) => u.id === viewingReport.targetId)) return;
+    fetchUserById(viewingReport.targetId).then(setFetchedTargetUser);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewingReport?.id]);
 
   const findTargetContent = (report: ReportItem) => {
     switch (report.targetType) {
       case 'post':
         return posts.find((p) => p.id === report.targetId);
       case 'user':
-        return allUsers.find((u) => u.id === report.targetId);
+        return allUsers.find((u) => u.id === report.targetId) || fetchedTargetUser || undefined;
       case 'group':
         return groups.find((g) => g.id === report.targetId);
       case 'comment':

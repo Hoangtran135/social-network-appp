@@ -23,4 +23,7 @@ const groupSchema = new Schema(
   { timestamps: { createdAt: true, updatedAt: false } }
 );
 
+groupSchema.index({ 'members.user': 1 });
+groupSchema.index({ name: 'text', description: 'text' });
+
 export const GroupModel = mongoose.models.Group || mongoose.model('Group', groupSchema);

@@ -38,6 +38,11 @@ const messageSchema = new Schema(
   { timestamps: { createdAt: true, updatedAt: false } }
 );
 
+// "my conversations" (participants contains me, newest activity first) and "messages in
+// this thread, oldest first" are both hit on every chat page load.
+conversationSchema.index({ participants: 1, updatedAt: -1 });
+messageSchema.index({ conversation: 1, createdAt: 1 });
+
 export const ConversationModel =
   mongoose.models.Conversation || mongoose.model('Conversation', conversationSchema);
 export const MessageModel = mongoose.models.Message || mongoose.model('Message', messageSchema);

@@ -7,6 +7,7 @@ import { requireAuth, requireAdmin, AuthedRequest } from '../middleware/auth';
 import { validateBody } from '../middleware/validate';
 import { updateProfileSchema, changePasswordSchema } from '../schemas';
 import { serializeUser, serializeMe } from '../serialize';
+import { emitToUser, emitToUsers, disconnectUser } from '../realtime';
 
 export const usersRouter = Router();
 
@@ -21,8 +22,30 @@ usersRouter.get('/', async (req: AuthedRequest, res) => {
   }
   if (req.query.role === 'admin' || req.query.role === 'user') filter.role = req.query.role;
   if (req.query.banned === 'true') filter.isBanned = true;
-  const users = await UserModel.find(filter).limit(500);
-  res.json({ users: users.map(serializeUser) });
+  if (req.query.bot === 'true') filter.isBot = true;
+  if (req.query.online === 'true') filter.isOnline = true;
+
+  // Bounded, ordered pagination — the old unpaginated `.limit(500)` meant a 10k-user
+  // instance silently dropped everyone past the first (arbitrarily-ordered) 500.
+  const limit = Math.min(Number(req.query.limit) || 60, 100);
+  const skip = Math.max(Number(req.query.skip) || 0, 0);
+  const [users, total] = await Promise.all([
+    UserModel.find(filter).sort({ joinDate: -1 }).skip(skip).limit(limit),
+    UserModel.countDocuments(filter),
+  ]);
+  res.json({ users: users.map(serializeUser), total });
+});
+
+// Cheap aggregate counts for the admin dashboard — avoids pulling every user document
+// over the wire just to display a couple of numbers.
+usersRouter.get('/stats', requireAdmin, async (_req, res) => {
+  const [total, online, banned, admins] = await Promise.all([
+    UserModel.countDocuments({}),
+    UserModel.countDocuments({ isOnline: true }),
+    UserModel.countDocuments({ isBanned: true }),
+    UserModel.countDocuments({ role: 'admin' }),
+  ]);
+  res.json({ total, online, banned, admins });
 });
 
 usersRouter.get('/:id', async (req, res) => {
@@ -124,7 +147,15 @@ usersRouter.patch('/:id/ban', requireAdmin, async (req: AuthedRequest, res) => {
       : 'Tài khoản của bạn đã được mở khóa.',
     targetType: 'system',
   });
+  if (target.isBanned) {
+    // A still-valid access token would otherwise keep working for up to 15 more minutes —
+    // tell the client to log out right now, then drop their sockets once that's had a
+    // moment to actually reach them (an immediate disconnect can race the emit itself).
+    emitToUser(target._id.toString(), 'user:banned', {});
+    setTimeout(() => disconnectUser(target._id.toString()), 300);
+  }
   res.json({ user: serializeUser(target) });
+  await broadcastUserUpdateToAdmins(target, req.userId);
 });
 
 usersRouter.patch('/:id/role', requireAdmin, async (req: AuthedRequest, res) => {
@@ -136,4 +167,16 @@ usersRouter.patch('/:id/role', requireAdmin, async (req: AuthedRequest, res) => 
   target.role = target.role === 'admin' ? 'user' : 'admin';
   await target.save();
   res.json({ user: serializeUser(target) });
+  await broadcastUserUpdateToAdmins(target, req.userId);
 });
+
+// Keeps every other admin's user-management table in sync live — without this, a second
+// admin viewing the same list only sees a ban/role change after they happen to reload.
+async function broadcastUserUpdateToAdmins(target: any, excludeUserId: string | undefined) {
+  const admins = await UserModel.find({ role: 'admin' }, '_id');
+  emitToUsers(
+    admins.map((a) => a._id.toString()).filter((uid) => uid !== excludeUserId),
+    'admin:user-update',
+    { user: serializeUser(target) }
+  );
+}

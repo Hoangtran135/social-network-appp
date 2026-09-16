@@ -6,6 +6,7 @@ import { requireAuth, AuthedRequest } from '../middleware/auth';
 import { validateBody } from '../middleware/validate';
 import { sendFriendRequestSchema } from '../schemas';
 import { serializeFriendRequest, serializeUser } from '../serialize';
+import { emitToUser } from '../realtime';
 
 export const friendsRouter = Router();
 friendsRouter.use(requireAuth);
@@ -28,6 +29,29 @@ async function getFriendIdSet(userId: string): Promise<Set<string>> {
   );
 }
 
+// "People you may know" — a small bounded sample of users who aren't already the viewer,
+// a friend, blocked, or the bot, instead of the old approach of shipping every user in the
+// system to the client just to filter this down in the browser.
+friendsRouter.get('/suggestions', async (req: AuthedRequest, res) => {
+  const [friendIds, me, pendingOut, pendingIn] = await Promise.all([
+    getFriendIdSet(req.userId!),
+    UserModel.findById(req.userId),
+    FriendRequestModel.find({ sender: req.userId }, 'receiver'),
+    FriendRequestModel.find({ receiver: req.userId }, 'sender'),
+  ]);
+  const excludeIds = [
+    req.userId,
+    ...friendIds,
+    ...(me?.blockedUsers || []).map((id: any) => id.toString()),
+    ...pendingOut.map((r: any) => r.receiver.toString()),
+    ...pendingIn.map((r: any) => r.sender.toString()),
+  ];
+  const suggestions = await UserModel.find({ _id: { $nin: excludeIds }, isBot: { $ne: true } })
+    .sort({ joinDate: -1 })
+    .limit(Math.min(Number(req.query.limit) || 12, 30));
+  res.json({ users: suggestions.map((u) => serializeUser(u)) });
+});
+
 // Requests addressed to me
 friendsRouter.get('/requests', async (req: AuthedRequest, res) => {
   const requests = await FriendRequestModel.find({ receiver: req.userId }).populate('sender');
@@ -44,7 +68,7 @@ friendsRouter.get('/requests', async (req: AuthedRequest, res) => {
 
 // Requests I sent out, still pending
 friendsRouter.get('/requests/sent', async (req: AuthedRequest, res) => {
-  const requests = await FriendRequestModel.find({ sender: req.userId }).populate('sender');
+  const requests = await FriendRequestModel.find({ sender: req.userId }).populate(['sender', 'receiver']);
   res.json({ requests: requests.map((r) => serializeFriendRequest(r)) });
 });
 
@@ -109,8 +133,12 @@ friendsRouter.post('/requests/:id/reject', async (req: AuthedRequest, res) => {
     res.status(404).json({ error: 'Không tìm thấy lời mời.' });
     return;
   }
+  const senderId = request.sender.toString();
   await request.deleteOne();
   res.json({ ok: true });
+  // Lets the original sender's "sent requests" list drop this live instead of staying
+  // stuck on "pending" until they happen to reload.
+  emitToUser(senderId, 'friend-request:rejected', { requestId: req.params.id });
 });
 
 // Public: friends of any given user (for viewing their profile's friends tab)
@@ -130,8 +158,11 @@ friendsRouter.delete('/requests/:id', async (req: AuthedRequest, res) => {
     res.status(404).json({ error: 'Không tìm thấy lời mời.' });
     return;
   }
+  const receiverId = request.receiver.toString();
   await request.deleteOne();
   res.json({ ok: true });
+  // The receiver's incoming-requests list should drop this the moment it's cancelled.
+  emitToUser(receiverId, 'friend-request:cancelled', { requestId: req.params.id });
 });
 
 friendsRouter.delete('/:userId', async (req: AuthedRequest, res) => {
@@ -142,4 +173,6 @@ friendsRouter.delete('/:userId', async (req: AuthedRequest, res) => {
     ],
   });
   res.json({ ok: true });
+  // The other side's friends list and any "Bạn bè" UI state should drop us live too.
+  emitToUser(req.params.userId, 'friend:removed', { userId: req.userId });
 });

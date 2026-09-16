@@ -30,4 +30,11 @@ const postSchema = new Schema(
   { timestamps: true }
 );
 
+// GET /posts sorts by createdAt desc and filters/looks up by author/group — without these,
+// that query does a full collection scan that only gets slower as content accumulates.
+postSchema.index({ createdAt: -1 });
+postSchema.index({ author: 1, createdAt: -1 });
+postSchema.index({ group: 1, createdAt: -1 });
+postSchema.index({ wallOwner: 1 });
+
 export const PostModel = mongoose.models.Post || mongoose.model('Post', postSchema);

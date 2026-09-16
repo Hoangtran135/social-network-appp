@@ -8,12 +8,80 @@ import { requireAuth, AuthedRequest } from '../middleware/auth';
 import { validateBody } from '../middleware/validate';
 import { createCommentSchema } from '../schemas';
 import { serializeComment } from '../serialize';
-import { emitToUser } from '../realtime';
+import { emitToUser, emitToUsers, broadcastToAll } from '../realtime';
 
 export const commentsRouter = Router();
 commentsRouter.use(requireAuth);
 
+async function getFriendIds(userId: string | undefined): Promise<string[]> {
+  const friendEdges = await FriendshipModel.find({ $or: [{ userA: userId }, { userB: userId }] });
+  return friendEdges.map((e: any) => (e.userA.toString() === userId ? e.userB.toString() : e.userA.toString()));
+}
+
+// Mirrors posts.ts's visibility rules so a deleted comment disappears live for exactly the
+// people who could see the post it was on, not everyone or no one.
+async function broadcastCommentDeleted(post: any, authorId: string, postId: string, commentId: string, excludeUserId: string) {
+  const payload = { postId, commentId };
+  if (post.group && post.group.privacy === 'private') {
+    const memberIds = (post.group.members || [])
+      .map((m: any) => (m.user?._id ? m.user._id.toString() : m.user.toString()))
+      .filter((uid: string) => uid !== excludeUserId);
+    emitToUsers(memberIds, 'comment:delete', payload);
+    return;
+  }
+  if (post.privacy === 'only_me') return;
+  if (post.privacy === 'friends') {
+    const friendIds = await getFriendIds(authorId);
+    const recipients = [...new Set([...friendIds, authorId])].filter((uid) => uid !== excludeUserId);
+    emitToUsers(recipients, 'comment:delete', payload);
+    return;
+  }
+  broadcastToAll('comment:delete', payload, excludeUserId);
+}
+
+commentsRouter.get('/stats', async (_req, res) => {
+  const total = await CommentModel.countDocuments({});
+  res.json({ total });
+});
+
 commentsRouter.get('/', async (req: AuthedRequest, res) => {
+  // Comments for one specific post — this is the actual hot path (a post card expanding
+  // its comment thread). Indexed on { post, createdAt } so it stays fast at any scale.
+  if (typeof req.query.postId === 'string') {
+    const post = await PostModel.findById(req.query.postId).select('author group privacy').populate('group');
+    if (!post) {
+      res.json({ comments: [] });
+      return;
+    }
+    const friendEdges = await FriendshipModel.find({ $or: [{ userA: req.userId }, { userB: req.userId }] });
+    const friendIds = new Set(
+      friendEdges.map((e: any) => (e.userA.toString() === req.userId ? e.userB.toString() : e.userA.toString()))
+    );
+    const authorId = post.author.toString();
+    const groupDoc: any = post.group;
+    const visible =
+      authorId === req.userId ||
+      (groupDoc && groupDoc.privacy === 'private'
+        ? groupDoc.members.some((m: any) => m.user.toString() === req.userId)
+        : post.privacy === 'only_me'
+        ? false
+        : post.privacy === 'friends'
+        ? friendIds.has(authorId)
+        : true);
+    if (!visible) {
+      res.status(403).json({ error: 'Bạn không có quyền xem bình luận của bài viết này.' });
+      return;
+    }
+    const comments = await CommentModel.find({ post: req.query.postId })
+      .sort({ createdAt: 1 })
+      .limit(500)
+      .populate('author');
+    res.json({ comments: comments.map(serializeComment) });
+    return;
+  }
+
+  // Legacy unscoped fetch — kept only as a bounded fallback for any caller that hasn't
+  // moved to per-post loading yet; capped hard so it can never turn into an unbounded scan.
   // Only return comments on posts this user is actually allowed to see —
   // previously returned every comment in the DB regardless of post privacy.
   // Projected to just the fields the visibility check needs — this used to pull full
@@ -115,7 +183,7 @@ commentsRouter.delete('/:id', async (req: AuthedRequest, res) => {
     res.status(404).json({ error: 'Không tìm thấy bình luận.' });
     return;
   }
-  const post = await PostModel.findById(comment.post);
+  const post = await PostModel.findById(comment.post).populate('group');
   const isAuthor = comment.author.toString() === req.userId;
   const isPostOwner = post && post.author.toString() === req.userId;
   if (!isAuthor && isPostOwner) {
@@ -141,12 +209,15 @@ commentsRouter.delete('/:id', async (req: AuthedRequest, res) => {
       targetType: 'system',
     });
   }
+  const commentId = comment.id;
+  const postId = comment.post.toString();
   await comment.deleteOne();
   if (post) {
     post.commentsCount = Math.max(0, (post.commentsCount || 0) - 1);
     await post.save();
   }
   res.json({ ok: true });
+  if (post) broadcastCommentDeleted(post, post.author.toString(), postId, commentId, req.userId!);
 });
 
 commentsRouter.post('/:id/like', async (req: AuthedRequest, res) => {

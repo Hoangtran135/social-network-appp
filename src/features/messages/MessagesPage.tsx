@@ -133,7 +133,20 @@ export const MessagesPage: React.FC = () => {
     showToast,
   } = useSocial();
   const { currentUser, allUsers } = useAuth();
-  const aiBot = allUsers.find((u) => u.isBot);
+  const [fetchedBot, setFetchedBot] = useState<User | undefined>(undefined);
+  const aiBot = allUsers.find((u) => u.isBot) || fetchedBot;
+
+  // The bot is a fixed system account that may not fall within the now-bounded `allUsers`
+  // page (it's an early account, and that list is sorted newest-first) — fetch it directly
+  // instead of just hiding the AI chatbot entry point when it doesn't happen to be loaded.
+  useEffect(() => {
+    if (allUsers.some((u) => u.isBot)) return;
+    api
+      .get<{ users: User[] }>('/users?bot=true&limit=1')
+      .then(({ users }) => setFetchedBot(users[0]))
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const confirm = useConfirm();
 
   const [searchQuery, setSearchQuery] = useState('');
