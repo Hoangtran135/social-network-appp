@@ -15,6 +15,7 @@ import {
   Briefcase,
 } from 'lucide-react';
 import { User } from '../../types';
+import { useConfirm } from '../../common/ConfirmDialogProvider';
 
 type FriendsTab = 'list' | 'requests' | 'suggestions';
 
@@ -32,6 +33,7 @@ export const FriendsPage: React.FC = () => {
   } = useSocial();
   const { currentUser, allUsers } = useAuth();
   const navigate = useNavigate();
+  const confirm = useConfirm();
 
   const [activeTab, setActiveTab] = useState<FriendsTab>('list');
   const [searchQuery, setSearchQuery] = useState('');
@@ -234,8 +236,8 @@ export const FriendsPage: React.FC = () => {
                       </button>
 
                       <button
-                        onClick={() => {
-                          if (window.confirm(`Hủy kết bạn với ${friend.name}?`)) removeFriend(friend.id);
+                        onClick={async () => {
+                          if (await confirm(`Hủy kết bạn với ${friend.name}?`)) removeFriend(friend.id);
                         }}
                         className="p-2 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 transition-colors"
                         title="Hủy kết bạn"
@@ -337,8 +339,8 @@ export const FriendsPage: React.FC = () => {
                           </div>
                         </Link>
                         <button
-                          onClick={() => {
-                            if (window.confirm(`Hủy lời mời kết bạn đã gửi cho ${target.name}?`)) cancelFriendRequest(req.id);
+                          onClick={async () => {
+                            if (await confirm(`Hủy lời mời kết bạn đã gửi cho ${target.name}?`)) cancelFriendRequest(req.id);
                           }}
                           className="w-full py-2 rounded-xl bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-700 text-xs font-bold transition-colors"
                         >

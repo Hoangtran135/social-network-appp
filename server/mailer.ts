@@ -11,10 +11,12 @@ const transporter = SMTP_HOST
     })
   : null;
 
-// Without SMTP configured (local/dev), the reset link is logged instead of emailed —
-// keeps password reset usable in every environment without requiring mail credentials.
 export async function sendPasswordResetEmail(to: string, resetUrl: string): Promise<void> {
   if (!transporter) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('SMTP is not configured — cannot send password reset email in production');
+    }
+    // Local/dev only: log the link instead of emailing it, so reset flow works without mail credentials.
     console.log(`[mailer] SMTP not configured — password reset link for ${to}: ${resetUrl}`);
     return;
   }

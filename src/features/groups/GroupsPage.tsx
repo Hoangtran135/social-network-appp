@@ -11,11 +11,13 @@ import {
   ArrowRight,
   TrendingUp,
 } from 'lucide-react';
+import { useConfirm } from '../../common/ConfirmDialogProvider';
 
 type GroupTab = 'my_groups' | 'discover';
 
 export const GroupsPage: React.FC = () => {
   const { groups, joinGroup, leaveGroup } = useSocial();
+  const confirm = useConfirm();
   const [activeTab, setActiveTab] = useState<GroupTab>('my_groups');
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -196,8 +198,8 @@ export const GroupsPage: React.FC = () => {
 
                     {group.isMember ? (
                       <button
-                        onClick={() => {
-                          if (window.confirm(`Bạn có chắc muốn rời khỏi nhóm "${group.name}"?`)) leaveGroup(group.id);
+                        onClick={async () => {
+                          if (await confirm(`Bạn có chắc muốn rời khỏi nhóm "${group.name}"?`)) leaveGroup(group.id);
                         }}
                         className="group/leave px-3 py-2 rounded-xl bg-slate-50 hover:bg-rose-50 text-slate-500 hover:text-rose-600 text-xs font-semibold transition-colors"
                       >

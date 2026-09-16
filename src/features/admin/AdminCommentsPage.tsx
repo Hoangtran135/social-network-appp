@@ -10,9 +10,11 @@ import {
   X,
 } from 'lucide-react';
 import { Comment } from '../../types';
+import { useConfirm } from '../../common/ConfirmDialogProvider';
 
 export const AdminCommentsPage: React.FC = () => {
   const { comments, posts, reports, deleteCommentAdmin } = useSocial();
+  const confirm = useConfirm();
   const [search, setSearch] = useState('');
   const [authorFilter, setAuthorFilter] = useState<string>('all');
   const [reportedOnly, setReportedOnly] = useState(false);
@@ -197,8 +199,8 @@ export const AdminCommentsPage: React.FC = () => {
 
                     <td className="py-3.5 px-4 text-right">
                       <button
-                        onClick={() => {
-                          if (window.confirm('Xóa bình luận này (vi phạm chính sách)?')) {
+                        onClick={async () => {
+                          if (await confirm('Xóa bình luận này (vi phạm chính sách)?')) {
                             deleteCommentAdmin(comment.postId, comment.id);
                           }
                         }}

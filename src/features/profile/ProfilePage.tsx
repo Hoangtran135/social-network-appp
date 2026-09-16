@@ -24,6 +24,7 @@ import {
   ShieldCheck,
   Ban,
 } from 'lucide-react';
+import { useConfirm } from '../../common/ConfirmDialogProvider';
 
 type ProfileTab = 'posts' | 'friends' | 'photos' | 'about';
 
@@ -43,6 +44,7 @@ export const ProfilePage: React.FC = () => {
     getUserFriends,
   } = useSocial();
   const navigate = useNavigate();
+  const confirm = useConfirm();
 
   const [activeTab, setActiveTab] = useState<ProfileTab>('posts');
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
@@ -108,12 +110,12 @@ export const ProfilePage: React.FC = () => {
   const sentRequest = sentFriendRequests.find((r) => r.receiverId === targetUser.id);
   const isBlocked = currentUser?.blockedUserIds?.includes(targetUser.id) ?? false;
 
-  const handleToggleBlock = () => {
+  const handleToggleBlock = async () => {
     if (isBlocked) {
       unblockUser(targetUser.id);
       return;
     }
-    if (window.confirm(`Chặn ${targetUser.name}? Hai bên sẽ không thể kết bạn hoặc nhắn tin cho nhau.`)) {
+    if (await confirm(`Chặn ${targetUser.name}? Hai bên sẽ không thể kết bạn hoặc nhắn tin cho nhau.`)) {
       blockUser(targetUser.id);
     }
   };
@@ -207,8 +209,8 @@ export const ProfilePage: React.FC = () => {
                 <>
                   {isFriend ? (
                     <button
-                      onClick={() => {
-                        if (window.confirm(`Hủy kết bạn với ${targetUser.name}?`)) removeFriend(targetUser.id);
+                      onClick={async () => {
+                        if (await confirm(`Hủy kết bạn với ${targetUser.name}?`)) removeFriend(targetUser.id);
                       }}
                       className="px-4 py-2.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors"
                     >
@@ -225,8 +227,8 @@ export const ProfilePage: React.FC = () => {
                     </button>
                   ) : sentRequest ? (
                     <button
-                      onClick={() => {
-                        if (window.confirm(`Hủy lời mời kết bạn đã gửi cho ${targetUser.name}?`)) cancelFriendRequest(sentRequest.id);
+                      onClick={async () => {
+                        if (await confirm(`Hủy lời mời kết bạn đã gửi cho ${targetUser.name}?`)) cancelFriendRequest(sentRequest.id);
                       }}
                       className="px-4 py-2.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-600 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors"
                     >

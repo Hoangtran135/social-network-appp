@@ -11,9 +11,11 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { SystemAnnouncement } from '../../types';
+import { useConfirm } from '../../common/ConfirmDialogProvider';
 
 export const AdminAnnouncementsPage: React.FC = () => {
   const { systemAnnouncements, createAnnouncement, deleteAnnouncement } = useSocial();
+  const confirm = useConfirm();
 
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
@@ -175,8 +177,8 @@ export const AdminAnnouncementsPage: React.FC = () => {
                 </div>
 
                 <button
-                  onClick={() => {
-                    if (window.confirm('Xóa thông báo hệ thống này?')) deleteAnnouncement(ann.id);
+                  onClick={async () => {
+                    if (await confirm('Xóa thông báo hệ thống này?')) deleteAnnouncement(ann.id);
                   }}
                   className="p-2 rounded-xl bg-slate-900 hover:bg-rose-950 text-slate-500 hover:text-rose-400 transition-colors shrink-0"
                   title="Xóa thông báo"

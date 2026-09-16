@@ -12,10 +12,12 @@ import {
   X,
 } from 'lucide-react';
 import { ReportItem } from '../../types';
+import { useConfirm } from '../../common/ConfirmDialogProvider';
 
 export const AdminReportsPage: React.FC = () => {
   const { reports, resolveReport, dismissReport, deletePostAdmin, posts, comments, groups } = useSocial();
   const { allUsers } = useAuth();
+  const confirm = useConfirm();
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'resolved' | 'dismissed'>('all');
   const [search, setSearch] = useState('');
   const [viewingReport, setViewingReport] = useState<ReportItem | null>(null);
@@ -48,8 +50,8 @@ export const AdminReportsPage: React.FC = () => {
 
   const pendingCount = reports.filter((r) => r.status === 'pending').length;
 
-  const handleActionAndDelete = (report: ReportItem) => {
-    if (!window.confirm('Xóa nội dung vi phạm này và đánh dấu báo cáo đã xử lý?')) return;
+  const handleActionAndDelete = async (report: ReportItem) => {
+    if (!(await confirm('Xóa nội dung vi phạm này và đánh dấu báo cáo đã xử lý?'))) return;
     if (report.targetType === 'post') {
       deletePostAdmin(report.targetId);
     }

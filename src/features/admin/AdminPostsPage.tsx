@@ -13,9 +13,11 @@ import {
   Globe,
   Users,
 } from 'lucide-react';
+import { useConfirm } from '../../common/ConfirmDialogProvider';
 
 export const AdminPostsPage: React.FC = () => {
   const { posts, deletePostAdmin } = useSocial();
+  const confirm = useConfirm();
   const [search, setSearch] = useState('');
   const [filterGroup, setFilterGroup] = useState<'all' | 'feed' | 'groups'>('all');
 
@@ -180,8 +182,8 @@ export const AdminPostsPage: React.FC = () => {
               {/* Actions */}
               <div className="flex items-center gap-2 shrink-0 border-t md:border-t-0 md:border-l border-slate-800/80 pt-3 md:pt-0 md:pl-4 justify-end">
                 <button
-                  onClick={() => {
-                    if (window.confirm('Xóa bài viết này do vi phạm chính sách cộng đồng?')) deletePostAdmin(post.id);
+                  onClick={async () => {
+                    if (await confirm('Xóa bài viết này do vi phạm chính sách cộng đồng?')) deletePostAdmin(post.id);
                   }}
                   className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-950/60 hover:bg-rose-900 text-rose-300 border border-rose-800/60 text-xs font-bold transition-colors"
                   title="Xóa bài viết vi phạm"

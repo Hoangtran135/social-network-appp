@@ -466,3 +466,22 @@ messagesRouter.post('/call-log', validateBody(logCallSchema), async (req: Authed
   broadcastMessage(conv._id.toString(), participantIds, req.userId, serialized);
   res.json({ conversationId: conv._id.toString(), message: serialized });
 });
+
+// Clears every message in a conversation — for everyone in it, not just the caller
+// (matches how the bot-chat "reset" is meant to work: a clean slate for all participants).
+// Irreversible; the frontend confirms before calling this.
+messagesRouter.delete('/conversations/:id/messages', async (req: AuthedRequest, res) => {
+  const check = await assertParticipant(req.params.id, req.userId);
+  if (!check.ok) {
+    res.status(check.status).json({ error: check.error });
+    return;
+  }
+  await MessageModel.deleteMany({ conversation: req.params.id });
+  await ConversationModel.findByIdAndUpdate(req.params.id, { updatedAt: new Date() });
+  const participantIds = check.conv.participants.map((p: any) => p.toString());
+  for (const pid of participantIds) {
+    if (pid === req.userId) continue;
+    emitToUser(pid, 'conversation:cleared', { conversationId: req.params.id });
+  }
+  res.json({ ok: true });
+});

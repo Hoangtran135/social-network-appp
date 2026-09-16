@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './features/auth/AuthContext';
 import { SocialProvider } from './context/SocialContext';
 import { CallProvider } from './features/calls/CallContext';
 import { CallModal } from './features/calls/CallModal';
+import { ConfirmDialogProvider } from './common/ConfirmDialogProvider';
 
 // Layouts
 import { MainLayout } from './layout/MainLayout';
@@ -59,6 +60,7 @@ const RequireAdmin: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 function App() {
   return (
     <BrowserRouter>
+      <ConfirmDialogProvider>
       <AuthProvider>
         <SocialProvider>
           <CallProvider>
@@ -116,6 +118,7 @@ function App() {
           </CallProvider>
         </SocialProvider>
       </AuthProvider>
+      </ConfirmDialogProvider>
     </BrowserRouter>
   );
 }

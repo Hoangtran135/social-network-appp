@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { timeAgo } from '../../utils/time';
 import { uploadImageFile } from '../../utils/upload';
+import { useConfirm } from '../../common/ConfirmDialogProvider';
 
 interface PostCardProps {
   post: Post;
@@ -44,6 +45,7 @@ const REACTION_EMOJIS: Record<ReactionType, { emoji: string; label: string; colo
 
 export const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const { currentUser, isAdmin } = useAuth();
+  const confirm = useConfirm();
   const {
     toggleReaction,
     toggleSavePost,
@@ -284,9 +286,9 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
 
               {(isOwner || isAdmin) && (
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     setShowOptions(false);
-                    if (window.confirm('Bạn có chắc muốn xóa bài viết này? Hành động này không thể hoàn tác.')) {
+                    if (await confirm('Bạn có chắc muốn xóa bài viết này? Hành động này không thể hoàn tác.')) {
                       deletePost(post.id);
                     }
                   }}
@@ -719,8 +721,8 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
                       </button>
                       {(isCommentOwner || isAdmin) && (
                         <button
-                          onClick={() => {
-                            if (window.confirm('Xóa bình luận này?')) deleteComment(post.id, c.id);
+                          onClick={async () => {
+                            if (await confirm('Xóa bình luận này?')) deleteComment(post.id, c.id);
                           }}
                           className="text-rose-500 hover:underline"
                         >

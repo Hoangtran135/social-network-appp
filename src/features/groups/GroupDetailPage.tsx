@@ -21,6 +21,7 @@ import {
   UserMinus,
   ShieldCheck,
 } from 'lucide-react';
+import { useConfirm } from '../../common/ConfirmDialogProvider';
 
 type GroupDetailTab = 'feed' | 'members' | 'about';
 
@@ -29,6 +30,7 @@ export const GroupDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const { groups, posts, joinGroup, leaveGroup, inviteToGroup, removeGroupMember, promoteGroupMember } = useSocial();
   const { currentUser, allUsers } = useAuth();
+  const confirm = useConfirm();
 
   const [activeTab, setActiveTab] = useState<GroupDetailTab>('feed');
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
@@ -133,8 +135,8 @@ export const GroupDetailPage: React.FC = () => {
                       <span>Viết bài trong nhóm</span>
                     </button>
                     <button
-                      onClick={() => {
-                        if (window.confirm(`Bạn có chắc muốn rời khỏi nhóm "${group.name}"?`)) {
+                      onClick={async () => {
+                        if (await confirm(`Bạn có chắc muốn rời khỏi nhóm "${group.name}"?`)) {
                           leaveGroup(group.id);
                         }
                       }}
@@ -339,8 +341,8 @@ export const GroupDetailPage: React.FC = () => {
 
                       {myMembership?.role === 'admin' && member.role !== 'admin' && (
                         <button
-                          onClick={() => {
-                            if (window.confirm(`Bổ nhiệm ${member.user.name} làm trưởng nhóm mới?`)) {
+                          onClick={async () => {
+                            if (await confirm({ message: `Bổ nhiệm ${member.user.name} làm trưởng nhóm mới?`, danger: false })) {
                               promoteGroupMember(group.id, member.userId, 'admin');
                             }
                           }}
@@ -353,8 +355,8 @@ export const GroupDetailPage: React.FC = () => {
 
                       {canRemoveThis && (
                         <button
-                          onClick={() => {
-                            if (window.confirm(`Xóa ${member.user.name} khỏi nhóm?`)) {
+                          onClick={async () => {
+                            if (await confirm(`Xóa ${member.user.name} khỏi nhóm?`)) {
                               removeGroupMember(group.id, member.userId);
                             }
                           }}

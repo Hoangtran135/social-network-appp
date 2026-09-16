@@ -4,6 +4,7 @@ import { useSocial } from '../../context/SocialContext';
 import { useAuth } from '../auth/AuthContext';
 import { X, ChevronLeft, ChevronRight, Send, Eye, Trash2 } from 'lucide-react';
 import { timeAgo } from '../../utils/time';
+import { useConfirm } from '../../common/ConfirmDialogProvider';
 
 interface StoryViewerModalProps {
   stories: Story[];
@@ -20,6 +21,7 @@ export const StoryViewerModal: React.FC<StoryViewerModalProps> = ({
 }) => {
   const { viewStory, deleteStory, sendMessage, getOrCreateConversation, showToast } = useSocial();
   const { currentUser } = useAuth();
+  const confirm = useConfirm();
 
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [progress, setProgress] = useState(0);
@@ -99,7 +101,7 @@ export const StoryViewerModal: React.FC<StoryViewerModalProps> = ({
   const isOwner = currentUser?.id === currentStory.user.id;
 
   const handleDeleteStory = async () => {
-    if (!window.confirm('Xóa Story này? Hành động này không thể hoàn tác.')) return;
+    if (!(await confirm('Xóa Story này? Hành động này không thể hoàn tác.'))) return;
     await deleteStory(currentStory.id);
     if (stories.length <= 1) {
       onClose();

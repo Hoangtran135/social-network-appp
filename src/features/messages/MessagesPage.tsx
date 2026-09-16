@@ -37,6 +37,7 @@ import { MessageAttachment, Post, User } from '../../types';
 import { uploadFile, formatFileSize, uploadImageFile } from '../../utils/upload';
 import { useCall } from '../calls/CallContext';
 import { api, ApiError } from '../../utils/api';
+import { useConfirm } from '../../common/ConfirmDialogProvider';
 
 const MESSAGE_REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '👏'];
 
@@ -128,10 +129,12 @@ export const MessagesPage: React.FC = () => {
     updateGroupChatAvatar,
     recallMessage,
     reactToMessage,
+    clearConversation,
     showToast,
   } = useSocial();
   const { currentUser, allUsers } = useAuth();
   const aiBot = allUsers.find((u) => u.isBot);
+  const confirm = useConfirm();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [inputText, setInputText] = useState('');
@@ -216,10 +219,19 @@ export const MessagesPage: React.FC = () => {
     }
   };
 
-  const handleRecallMessage = (messageId: string) => {
+  const handleRecallMessage = async (messageId: string) => {
     if (!activeConversation) return;
-    if (window.confirm('Thu hồi tin nhắn này? Mọi người trong cuộc trò chuyện sẽ không còn thấy nội dung.')) {
+    if (await confirm('Thu hồi tin nhắn này? Mọi người trong cuộc trò chuyện sẽ không còn thấy nội dung.')) {
       recallMessage(activeConversation.id, messageId);
+    }
+  };
+
+  const handleClearConversation = async () => {
+    if (!activeConversation) return;
+    if (
+      await confirm('Bắt đầu cuộc trò chuyện mới? Toàn bộ tin nhắn cũ sẽ bị xóa và không thể khôi phục.')
+    ) {
+      clearConversation(activeConversation.id);
     }
   };
 
@@ -328,27 +340,27 @@ export const MessagesPage: React.FC = () => {
     setShowAddMemberPicker(false);
   };
 
-  const handleRemoveMember = (userId: string, name: string) => {
+  const handleRemoveMember = async (userId: string, name: string) => {
     if (!activeConversation) return;
-    if (window.confirm(`Xóa ${name} khỏi nhóm chat?`)) {
+    if (await confirm(`Xóa ${name} khỏi nhóm chat?`)) {
       removeConversationMember(activeConversation.id, userId);
     }
   };
 
-  const handlePromoteMember = (userId: string, name: string) => {
+  const handlePromoteMember = async (userId: string, name: string) => {
     if (!activeConversation) return;
-    if (window.confirm(`Bổ nhiệm ${name} làm quản trị viên nhóm chat?`)) {
+    if (await confirm({ message: `Bổ nhiệm ${name} làm quản trị viên nhóm chat?`, danger: false })) {
       promoteConversationAdmin(activeConversation.id, userId);
     }
   };
 
-  const handleLeaveGroup = () => {
+  const handleLeaveGroup = async () => {
     if (!activeConversation || !currentUser) return;
     if (isSoleAdmin && activeConversation.participants.length > 1) {
       showToast('Bạn là quản trị viên duy nhất — hãy bổ nhiệm người khác trước khi rời nhóm.', 'error');
       return;
     }
-    if (window.confirm(`Bạn có chắc muốn rời khỏi nhóm "${activeConversation.name}"?`)) {
+    if (await confirm(`Bạn có chắc muốn rời khỏi nhóm "${activeConversation.name}"?`)) {
       removeConversationMember(activeConversation.id, currentUser.id).then(() => navigate('/messages'));
     }
   };
@@ -542,6 +554,15 @@ export const MessagesPage: React.FC = () => {
                     <Video className="w-4 h-4" />
                   </button>
                 </>
+              )}
+              {partner?.isBot && (
+                <button
+                  onClick={handleClearConversation}
+                  className="p-2 rounded-full hover:bg-slate-100 text-slate-500 hover:text-rose-600 transition-colors"
+                  title="Cuộc trò chuyện mới (xóa toàn bộ tin nhắn cũ)"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </button>
               )}
               <button
                 onClick={() => setShowInfoPanel(!showInfoPanel)}

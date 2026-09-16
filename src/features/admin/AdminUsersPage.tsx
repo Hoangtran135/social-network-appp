@@ -13,10 +13,12 @@ import {
   ExternalLink,
   Radio,
 } from 'lucide-react';
+import { useConfirm } from '../../common/ConfirmDialogProvider';
 
 export const AdminUsersPage: React.FC = () => {
   const { allUsers, currentUser, toggleBanUser, toggleUserRole } = useAuth();
   const { showToast } = useSocial();
+  const confirm = useConfirm();
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'user' | 'online'>('all');
 
@@ -33,8 +35,8 @@ export const AdminUsersPage: React.FC = () => {
     return matchSearch && matchRole;
   });
 
-  const handleToggleBan = (userId: string, userName: string, isBanned?: boolean) => {
-    if (!isBanned && !window.confirm(`Khóa tài khoản của ${userName}? Người dùng này sẽ không thể đăng nhập.`)) {
+  const handleToggleBan = async (userId: string, userName: string, isBanned?: boolean) => {
+    if (!isBanned && !(await confirm(`Khóa tài khoản của ${userName}? Người dùng này sẽ không thể đăng nhập.`))) {
       return;
     }
     toggleBanUser(userId);
@@ -44,9 +46,12 @@ export const AdminUsersPage: React.FC = () => {
     );
   };
 
-  const handleToggleRole = (userId: string, userName: string, currentRole: string) => {
+  const handleToggleRole = async (userId: string, userName: string, currentRole: string) => {
     const nextRole = currentRole === 'admin' ? 'Thành viên' : 'Quản trị viên';
-    if (currentRole !== 'admin' && !window.confirm(`Cấp quyền Quản trị viên cho ${userName}? Họ sẽ có toàn quyền quản lý hệ thống.`)) {
+    if (
+      currentRole !== 'admin' &&
+      !(await confirm(`Cấp quyền Quản trị viên cho ${userName}? Họ sẽ có toàn quyền quản lý hệ thống.`))
+    ) {
       return;
     }
     toggleUserRole(userId);

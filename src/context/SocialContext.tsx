@@ -71,6 +71,7 @@ interface SocialContextType {
   renameGroupChat: (conversationId: string, name: string) => Promise<void>;
   updateGroupChatAvatar: (conversationId: string, avatar: string) => Promise<void>;
   recallMessage: (conversationId: string, messageId: string) => Promise<void>;
+  clearConversation: (conversationId: string) => Promise<void>;
   reactToMessage: (conversationId: string, messageId: string, emoji: string) => Promise<void>;
   addConversationMember: (conversationId: string, userId: string) => Promise<void>;
   removeConversationMember: (conversationId: string, userId: string) => Promise<void>;
@@ -274,12 +275,21 @@ export const SocialProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
     };
 
+    const onConversationCleared = (data: { conversationId: string }) => {
+      setMessages((prev) => ({ ...prev, [data.conversationId]: [] }));
+      setConversations((prev) =>
+        prev.map((c) => (c.id === data.conversationId ? { ...c, lastMessage: undefined } : c))
+      );
+    };
+
     socket.on('message:new', onNewMessage);
     socket.on('notification:new', onNewNotification);
+    socket.on('conversation:cleared', onConversationCleared);
 
     return () => {
       socket.off('message:new', onNewMessage);
       socket.off('notification:new', onNewNotification);
+      socket.off('conversation:cleared', onConversationCleared);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser?.id]);
@@ -671,6 +681,19 @@ export const SocialProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
+  const clearConversation = async (conversationId: string) => {
+    try {
+      await api.delete(`/messages/conversations/${conversationId}/messages`);
+      setMessages((prev) => ({ ...prev, [conversationId]: [] }));
+      setConversations((prev) =>
+        prev.map((c) => (c.id === conversationId ? { ...c, lastMessage: undefined } : c))
+      );
+      showToast('Đã xóa toàn bộ cuộc trò chuyện.', 'info');
+    } catch (err) {
+      handleError(err, 'Không thể xóa cuộc trò chuyện.');
+    }
+  };
+
   const reactToMessage = async (conversationId: string, messageId: string, emoji: string) => {
     try {
       const { message } = await api.post<{ message: Message }>(
@@ -972,6 +995,7 @@ export const SocialProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         renameGroupChat,
         updateGroupChatAvatar,
         recallMessage,
+        clearConversation,
         reactToMessage,
         addConversationMember,
         removeConversationMember,

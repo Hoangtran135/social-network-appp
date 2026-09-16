@@ -10,9 +10,11 @@ import {
   Trash2,
   ExternalLink,
 } from 'lucide-react';
+import { useConfirm } from '../../common/ConfirmDialogProvider';
 
 export const AdminGroupsPage: React.FC = () => {
   const { groups, deleteGroupAdmin } = useSocial();
+  const confirm = useConfirm();
   const [search, setSearch] = useState('');
 
   const filteredGroups = groups.filter(
@@ -21,8 +23,8 @@ export const AdminGroupsPage: React.FC = () => {
       g.description.toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleDeleteGroup = (groupId: string, name: string) => {
-    if (window.confirm(`Giải tán nhóm "${name}"? Toàn bộ bài viết trong nhóm sẽ bị xóa vĩnh viễn.`)) {
+  const handleDeleteGroup = async (groupId: string, name: string) => {
+    if (await confirm(`Giải tán nhóm "${name}"? Toàn bộ bài viết trong nhóm sẽ bị xóa vĩnh viễn.`)) {
       deleteGroupAdmin(groupId, name);
     }
   };
