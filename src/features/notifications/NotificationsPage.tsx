@@ -22,6 +22,7 @@ export const NotificationsPage: React.FC = () => {
   const {
     notifications,
     posts,
+    fetchPostById,
     markNotificationAsRead,
     markAllNotificationsAsRead,
     hasMoreNotifications,
@@ -71,11 +72,13 @@ export const NotificationsPage: React.FC = () => {
     }
   };
 
-  const handleNotificationClick = (notif: NotificationItem) => {
+  const handleNotificationClick = async (notif: NotificationItem) => {
     markNotificationAsRead(notif.id);
     if (notif.targetType === 'post' && notif.targetId) {
       const targetId = notif.targetId;
-      const targetPost = posts.find((p) => p.id === targetId);
+      // Not every post referenced by a notification is already in local state (an older
+      // post, or one on someone else's wall) — fetch it first so it's there to render/scroll to.
+      const targetPost = posts.find((p) => p.id === targetId) || (await fetchPostById(targetId)) || undefined;
       // Wall posts only render on the wall owner's profile, not the main feed.
       const path = targetPost?.wallOwnerId ? `/profile/${targetPost.wallOwnerId}` : '/';
       if (window.location.pathname === path) {

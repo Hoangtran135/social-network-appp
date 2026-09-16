@@ -48,6 +48,7 @@ export const GroupDetailPage: React.FC = () => {
     rejectGroupJoinRequest,
     acceptGroupInvite,
     declineGroupInvite,
+    fetchGroupById,
   } = useSocial();
   const { currentUser } = useAuth();
   const confirm = useConfirm();
@@ -59,6 +60,8 @@ export const GroupDetailPage: React.FC = () => {
   const [rulesDraft, setRulesDraft] = useState<string[]>([]);
   const [newRuleText, setNewRuleText] = useState('');
   const [joinRequests, setJoinRequests] = useState<GroupJoinRequestItem[]>([]);
+  const [isFetchingGroup, setIsFetchingGroup] = useState(false);
+  const [groupNotFound, setGroupNotFound] = useState(false);
 
   const group = groups.find((g) => g.id === id);
   const myMembership = group?.members.find((m) => m.userId === currentUser?.id);
@@ -73,7 +76,29 @@ export const GroupDetailPage: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [group?.id, canManageMembers, group?.joinRequestsCount]);
 
+  // Not every group the user might land on (e.g. via a brand-new invite/promotion
+  // notification) is in the already-loaded `groups` list — fetch it directly instead of
+  // showing a false "not found" that only a full page reload used to fix.
+  useEffect(() => {
+    if (group || !id) return;
+    setIsFetchingGroup(true);
+    setGroupNotFound(false);
+    fetchGroupById(id).then((fetched) => {
+      setIsFetchingGroup(false);
+      if (!fetched) setGroupNotFound(true);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, group]);
+
   if (!group) {
+    if (isFetchingGroup && !groupNotFound) {
+      return (
+        <div className="w-full max-w-3xl mx-auto bg-white rounded-3xl p-12 text-center border border-slate-200 shadow-xs">
+          <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-sm text-slate-500">Đang tải nhóm...</p>
+        </div>
+      );
+    }
     return (
       <div className="w-full max-w-3xl mx-auto bg-white rounded-3xl p-12 text-center border border-slate-200 shadow-xs">
         <div className="w-16 h-16 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center mx-auto mb-4">

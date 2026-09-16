@@ -8,6 +8,7 @@ import { requireAuth, AuthedRequest } from '../middleware/auth';
 import { validateBody } from '../middleware/validate';
 import { createCommentSchema } from '../schemas';
 import { serializeComment } from '../serialize';
+import { emitToUser } from '../realtime';
 
 export const commentsRouter = Router();
 commentsRouter.use(requireAuth);
@@ -67,6 +68,12 @@ commentsRouter.post('/', validateBody(createCommentSchema), async (req: AuthedRe
   post.commentsCount = (post.commentsCount || 0) + 1;
   await post.save();
 
+  const serialized = serializeComment(comment);
+  // Push the comment itself live — not just the notification — to everyone who'll be
+  // notified about it. Without this, clicking the "X commented" notification lands on
+  // a post whose comments list doesn't include the new comment until a manual refetch.
+  const pushRecipients = new Set<string>();
+
   if (post.author.toString() !== req.userId) {
     await createNotification({
       user: post.author,
@@ -76,6 +83,7 @@ commentsRouter.post('/', validateBody(createCommentSchema), async (req: AuthedRe
       targetId: postId,
       targetType: 'post',
     });
+    pushRecipients.add(post.author.toString());
   }
 
   if (taggedIds.length > 0) {
@@ -93,9 +101,12 @@ commentsRouter.post('/', validateBody(createCommentSchema), async (req: AuthedRe
           })
         )
     );
+    taggedIds.forEach((userId) => pushRecipients.add(userId));
   }
 
-  res.json({ comment: serializeComment(comment) });
+  pushRecipients.forEach((userId) => emitToUser(userId, 'comment:new', { postId, comment: serialized }));
+
+  res.json({ comment: serialized });
 });
 
 commentsRouter.delete('/:id', async (req: AuthedRequest, res) => {

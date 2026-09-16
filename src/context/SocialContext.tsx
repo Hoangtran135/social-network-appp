@@ -30,6 +30,7 @@ interface SocialContextType {
   toggleReaction: (postId: string, type: ReactionType) => Promise<void>;
   toggleSavePost: (postId: string) => Promise<void>;
   togglePinPost: (postId: string) => Promise<void>;
+  fetchPostById: (postId: string) => Promise<Post | null>;
   sharePost: (postId: string, message?: string) => Promise<void>;
 
   // Comments
@@ -89,6 +90,7 @@ interface SocialContextType {
   groups: Group[];
   createGroup: (name: string, description: string, privacy: 'public' | 'private', avatar?: string, coverImage?: string) => Promise<Group>;
   joinGroup: (groupId: string) => Promise<void>;
+  fetchGroupById: (groupId: string) => Promise<Group | null>;
   leaveGroup: (groupId: string) => Promise<void>;
   fetchGroupJoinRequests: (groupId: string) => Promise<GroupJoinRequestItem[]>;
   approveGroupJoinRequest: (groupId: string, userId: string, name: string) => Promise<void>;
@@ -302,14 +304,28 @@ export const SocialProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       );
     };
 
+    // Pushes another user's comment straight into local state — without this, clicking a
+    // "X commented on your post" notification lands on a post whose comment list is still
+    // missing that exact comment until a manual refetch.
+    const onNewComment = (data: { postId: string; comment: Comment }) => {
+      setComments((prev) => {
+        const existing = prev[data.postId] || [];
+        if (existing.some((c) => c.id === data.comment.id)) return prev;
+        return { ...prev, [data.postId]: [...existing, data.comment] };
+      });
+      setPosts((prev) => prev.map((p) => (p.id === data.postId ? { ...p, commentsCount: p.commentsCount + 1 } : p)));
+    };
+
     socket.on('message:new', onNewMessage);
     socket.on('notification:new', onNewNotification);
     socket.on('conversation:cleared', onConversationCleared);
+    socket.on('comment:new', onNewComment);
 
     return () => {
       socket.off('message:new', onNewMessage);
       socket.off('notification:new', onNewNotification);
       socket.off('conversation:cleared', onConversationCleared);
+      socket.off('comment:new', onNewComment);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser?.id]);
@@ -411,6 +427,18 @@ export const SocialProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       showToast(post.pinned ? 'Đã ghim bài viết' : 'Đã bỏ ghim bài viết', 'info');
     } catch (err) {
       handleError(err, 'Không thể ghim bài viết.');
+    }
+  };
+
+  // Fetches a post that isn't in the already-loaded `posts` list yet — e.g. an older post,
+  // or one on someone else's wall, referenced by a notification (like, comment, tag...).
+  const fetchPostById = async (postId: string): Promise<Post | null> => {
+    try {
+      const { post } = await api.get<{ post: Post }>(`/posts/${postId}`);
+      setPosts((prev) => (prev.some((p) => p.id === postId) ? prev.map((p) => (p.id === postId ? post : p)) : [post, ...prev]));
+      return post;
+    } catch {
+      return null;
     }
   };
 
@@ -817,6 +845,18 @@ export const SocialProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return group;
   };
 
+  // Fetches a group that isn't in the already-loaded `groups` list yet — e.g. a brand new
+  // group referenced by a notification (invite, promotion...) received after the initial load.
+  const fetchGroupById = async (groupId: string): Promise<Group | null> => {
+    try {
+      const { group } = await api.get<{ group: Group }>(`/groups/${groupId}`);
+      setGroups((prev) => (prev.some((g) => g.id === groupId) ? prev.map((g) => (g.id === groupId ? group : g)) : [group, ...prev]));
+      return group;
+    } catch {
+      return null;
+    }
+  };
+
   const joinGroup = async (groupId: string) => {
     try {
       const { group } = await api.post<{ group: Group }>(`/groups/${groupId}/join`);
@@ -1071,6 +1111,7 @@ export const SocialProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         toggleReaction,
         toggleSavePost,
         togglePinPost,
+        fetchPostById,
         sharePost,
         comments,
         addComment,
@@ -1109,6 +1150,7 @@ export const SocialProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         groups,
         createGroup,
         joinGroup,
+        fetchGroupById,
         leaveGroup,
         fetchGroupJoinRequests,
         approveGroupJoinRequest,

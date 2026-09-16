@@ -26,7 +26,7 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({ onOpenCreatePost }) => {
   const { currentUser, logout, isAdmin } = useAuth();
-  const { notifications, conversations, posts, markNotificationAsRead } = useSocial();
+  const { notifications, conversations, posts, fetchPostById, markNotificationAsRead } = useSocial();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -226,17 +226,18 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCreatePost }) => {
                       return (
                       <div
                         key={n.id}
-                        onClick={() => {
+                        onClick={async () => {
                           markNotificationAsRead(n.id);
                           setShowNotifMenu(false);
                           if (n.targetType === 'post' && n.targetId) {
-                            const targetPost = posts.find((p) => p.id === n.targetId);
+                            const targetId = n.targetId;
+                            const targetPost = posts.find((p) => p.id === targetId) || (await fetchPostById(targetId)) || undefined;
                             const path = targetPost?.wallOwnerId ? `/profile/${targetPost.wallOwnerId}` : '/';
                             if (window.location.pathname === path) {
-                              scrollToPost(n.targetId);
+                              scrollToPost(targetId);
                             } else {
                               navigate(path);
-                              setTimeout(() => scrollToPost(n.targetId!), 150);
+                              setTimeout(() => scrollToPost(targetId), 150);
                             }
                           } else if (n.targetType === 'profile') {
                             navigate(`/profile/${n.actor.id}`);

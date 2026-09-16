@@ -44,6 +44,30 @@ function id(m: any) {
   return (m.user?._id ? m.user._id : m.user).toString();
 }
 
+// Fetches a single group not yet present in the client's already-loaded list — e.g. a brand
+// new group referenced by an invite/promotion notification the client hasn't fetched yet.
+groupsRouter.get('/:id', async (req: AuthedRequest, res) => {
+  const group = await GroupModel.findById(req.params.id).populate('members.user creator');
+  if (!group) {
+    res.status(404).json({ error: 'Không tìm thấy nhóm.' });
+    return;
+  }
+  const [hasPendingJoinRequest, hasPendingInvite, joinRequestsCount] = await Promise.all([
+    GroupJoinRequestModel.exists({ group: group._id, user: req.userId }),
+    GroupInviteModel.exists({ group: group._id, user: req.userId }),
+    (group as any).members.some((m: any) => id(m) === req.userId && ['admin', 'moderator'].includes(m.role))
+      ? GroupJoinRequestModel.countDocuments({ group: group._id })
+      : Promise.resolve(undefined),
+  ]);
+  res.json({
+    group: serializeGroup(group, req.userId, {
+      hasPendingJoinRequest: !!hasPendingJoinRequest,
+      hasPendingInvite: !!hasPendingInvite,
+      joinRequestsCount,
+    }),
+  });
+});
+
 groupsRouter.post('/', validateBody(createGroupSchema), async (req: AuthedRequest, res) => {
   const { name, description, privacy, avatar, coverImage } = req.body;
   const group = await GroupModel.create({
