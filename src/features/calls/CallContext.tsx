@@ -21,6 +21,8 @@ interface CallContextType {
   remoteStream: MediaStream | null;
   isMuted: boolean;
   isCameraOff: boolean;
+  callError: string | null;
+  clearCallError: () => void;
   startCall: (peer: User, callType: CallType, conversationId?: string) => Promise<void>;
   acceptCall: () => Promise<void>;
   rejectCall: () => void;
@@ -44,6 +46,8 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [isCameraOff, setIsCameraOff] = useState(false);
+  const [callError, setCallError] = useState<string | null>(null);
+  const clearCallError = useCallback(() => setCallError(null), []);
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const pendingCandidatesRef = useRef<RTCIceCandidateInit[]>([]);
@@ -107,6 +111,13 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 
   const getLocalMedia = async (callType: CallType) => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      throw new Error(
+        window.isSecureContext
+          ? 'Trình duyệt này không hỗ trợ gọi thoại/video.'
+          : 'Không thể truy cập camera/micro vì kết nối không an toàn (HTTP). Vui lòng truy cập trang qua HTTPS.'
+      );
+    }
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: true,
       video: callType === 'video',
@@ -117,6 +128,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const startCall = async (peer: User, callType: CallType, conversationId?: string) => {
     if (!currentUser || activeCallRef.current) return;
+    setCallError(null);
     setActiveCall({ status: 'ringing-outgoing', callType, peerUser: peer, conversationId });
     try {
       const stream = await getLocalMedia(callType);
@@ -127,7 +139,8 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
       getSocket().emit('call:answer-offer', { toUserId: peer.id, offer });
-    } catch {
+    } catch (err) {
+      setCallError(err instanceof Error ? err.message : 'Không thể bắt đầu cuộc gọi.');
       cleanup();
     }
   };
@@ -157,7 +170,8 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       stream.getTracks().forEach((t) => pc.addTrack(t, stream));
       hasAcceptedRef.current = true;
       await tryCompleteAnswer();
-    } catch {
+    } catch (err) {
+      setCallError(err instanceof Error ? err.message : 'Không thể tham gia cuộc gọi.');
       rejectCall();
     }
   };
@@ -281,6 +295,8 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
         remoteStream,
         isMuted,
         isCameraOff,
+        callError,
+        clearCallError,
         startCall,
         acceptCall,
         rejectCall,

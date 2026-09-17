@@ -3,8 +3,20 @@ import { Phone, PhoneOff, Video, VideoOff, Mic, MicOff } from 'lucide-react';
 import { useCall } from './CallContext';
 
 export const CallModal: React.FC = () => {
-  const { activeCall, localStream, remoteStream, isMuted, isCameraOff, acceptCall, rejectCall, endCall, toggleMute, toggleCamera } =
-    useCall();
+  const {
+    activeCall,
+    localStream,
+    remoteStream,
+    isMuted,
+    isCameraOff,
+    callError,
+    clearCallError,
+    acceptCall,
+    rejectCall,
+    endCall,
+    toggleMute,
+    toggleCamera,
+  } = useCall();
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
@@ -19,7 +31,17 @@ export const CallModal: React.FC = () => {
     if (remoteAudioRef.current) remoteAudioRef.current.srcObject = remoteStream;
   }, [remoteStream]);
 
-  if (!activeCall) return null;
+  if (!activeCall) {
+    if (!callError) return null;
+    return (
+      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] bg-rose-600 text-white text-sm px-4 py-3 rounded-xl shadow-xl max-w-sm flex items-start gap-3">
+        <span className="flex-1">{callError}</span>
+        <button onClick={clearCallError} className="font-bold leading-none">
+          ×
+        </button>
+      </div>
+    );
+  }
 
   const { status, callType, peerUser } = activeCall;
   const isVideo = callType === 'video';
