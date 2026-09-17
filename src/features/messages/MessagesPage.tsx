@@ -633,17 +633,24 @@ export const MessagesPage: React.FC = () => {
                       ? `${isMineCall ? 'Cuộc gọi nhỡ' : 'Bạn đã bỏ lỡ cuộc gọi'} ${isVideoCall ? 'video' : 'thoại'}`
                       : `${isMineCall ? 'Đã hủy cuộc gọi' : 'Cuộc gọi bị từ chối'} ${isVideoCall ? 'video' : 'thoại'}`;
                   const Icon = msg.callStatus === 'completed' ? (isVideoCall ? Video : Phone) : msg.callStatus === 'missed' ? PhoneMissed : PhoneOff;
+                  const isDanger = msg.callStatus !== 'completed';
                   return (
-                    <div key={msg.id} className={`flex items-center gap-2 ${isMineCall ? 'justify-end' : 'justify-start'}`}>
+                    <div key={msg.id} className={`flex ${isMineCall ? 'justify-end' : 'justify-start'}`}>
                       <div
-                        className={`flex items-center gap-2 px-3.5 py-2 rounded-full text-xs font-semibold ${
-                          msg.callStatus === 'completed'
-                            ? 'bg-slate-100 text-slate-600'
-                            : 'bg-rose-50 text-rose-600'
+                        className={`flex items-center gap-2 pl-2 pr-3.5 py-1.5 rounded-2xl border text-xs font-medium max-w-[75%] ${
+                          isDanger
+                            ? 'bg-rose-50 border-rose-100 text-rose-600'
+                            : 'bg-white border-slate-200 text-slate-600 shadow-sm'
                         }`}
                       >
-                        <Icon className="w-4 h-4" />
-                        <span>{label}</span>
+                        <span
+                          className={`flex items-center justify-center w-6 h-6 rounded-full shrink-0 ${
+                            isDanger ? 'bg-rose-100' : 'bg-slate-100'
+                          }`}
+                        >
+                          <Icon className="w-3.5 h-3.5" />
+                        </span>
+                        <span className="truncate">{label}</span>
                       </div>
                     </div>
                   );
