@@ -49,9 +49,9 @@ export const CallModal: React.FC = () => {
   return (
     <div className="fixed inset-0 z-[100] bg-slate-950 flex flex-col items-center justify-between p-6">
       {isVideo && status === 'connected' && (
-        <video ref={remoteVideoRef} autoPlay playsInline className="absolute inset-0 w-full h-full object-cover" />
+        <video ref={remoteVideoRef} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover" />
       )}
-      {!isVideo && <audio ref={remoteAudioRef} autoPlay />}
+      <audio ref={remoteAudioRef} autoPlay />
 
       {/* Overlay content */}
       <div className="relative z-10 flex-1 flex flex-col items-center justify-center text-center">
