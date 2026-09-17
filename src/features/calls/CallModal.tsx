@@ -47,14 +47,17 @@ export const CallModal: React.FC = () => {
   const isVideo = callType === 'video';
 
   return (
-    <div className="fixed inset-0 z-[100] bg-slate-950 flex flex-col items-center justify-between p-6">
+    <div
+      className="fixed inset-0 z-[100] bg-slate-950 flex flex-col items-center justify-between p-6"
+      style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom, 0px) + 1.5rem)' }}
+    >
       {isVideo && (
         <video
           ref={remoteVideoRef}
           autoPlay
           playsInline
           muted
-          className={`absolute inset-0 w-full h-full object-cover ${status === 'connected' ? '' : 'opacity-0'}`}
+          className={`absolute inset-0 w-full h-full object-cover pointer-events-none ${status === 'connected' ? '' : 'opacity-0'}`}
         />
       )}
       <audio ref={remoteAudioRef} autoPlay />
@@ -81,7 +84,7 @@ export const CallModal: React.FC = () => {
           autoPlay
           playsInline
           muted
-          className="absolute bottom-28 right-6 w-28 h-40 sm:w-36 sm:h-52 rounded-2xl object-cover border-2 border-white/30 shadow-xl z-10"
+          className="absolute top-6 right-6 sm:top-auto sm:bottom-28 w-28 h-40 sm:w-36 sm:h-52 rounded-2xl object-cover border-2 border-white/30 shadow-xl z-10"
         />
       )}
 
