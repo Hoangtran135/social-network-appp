@@ -62,19 +62,30 @@ export const CallModal: React.FC = () => {
       )}
       <audio ref={remoteAudioRef} autoPlay />
 
-      {/* Overlay content */}
+      {/* Overlay content: full avatar/name while ringing or on audio calls; once a
+          video call is connected the live feed fills the screen, so shrink this
+          down to a small name tag instead of covering the picture. The flex-1
+          spacer is kept either way so the controls stay pinned to the bottom. */}
       <div className="relative z-10 flex-1 flex flex-col items-center justify-center text-center">
-        <img
-          src={peerUser.avatar}
-          alt={peerUser.name}
-          className="w-24 h-24 rounded-full object-cover border-4 border-white/20 shadow-2xl mb-4"
-        />
-        <h2 className="text-white text-xl font-bold">{peerUser.name}</h2>
-        <p className="text-slate-300 text-sm mt-1">
-          {status === 'ringing-outgoing' && 'Đang gọi...'}
-          {status === 'ringing-incoming' && (isVideo ? 'Cuộc gọi video đến' : 'Cuộc gọi thoại đến')}
-          {status === 'connected' && 'Đang trong cuộc gọi'}
-        </p>
+        {isVideo && status === 'connected' ? (
+          <div className="absolute top-0 left-0 bg-black/40 backdrop-blur-sm rounded-full px-3 py-1.5">
+            <span className="text-white text-sm font-medium">{peerUser.name}</span>
+          </div>
+        ) : (
+          <>
+            <img
+              src={peerUser.avatar}
+              alt={peerUser.name}
+              className="w-24 h-24 rounded-full object-cover border-4 border-white/20 shadow-2xl mb-4"
+            />
+            <h2 className="text-white text-xl font-bold">{peerUser.name}</h2>
+            <p className="text-slate-300 text-sm mt-1">
+              {status === 'ringing-outgoing' && 'Đang gọi...'}
+              {status === 'ringing-incoming' && (isVideo ? 'Cuộc gọi video đến' : 'Cuộc gọi thoại đến')}
+              {status === 'connected' && 'Đang trong cuộc gọi'}
+            </p>
+          </>
+        )}
       </div>
 
       {/* Local video preview (video calls only) */}
