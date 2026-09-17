@@ -78,6 +78,8 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const activeCallRef = useRef<ActiveCall | null>(null);
   activeCallRef.current = activeCall;
   const connectedAtRef = useRef<number | null>(null);
+  const connectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const localStreamRef = useRef<MediaStream | null>(null);
 
   const cleanup = useCallback(() => {
     pcRef.current?.close();
@@ -86,7 +88,12 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     pendingOfferRef.current = null;
     hasAcceptedRef.current = false;
     connectedAtRef.current = null;
+    if (connectTimeoutRef.current) {
+      clearTimeout(connectTimeoutRef.current);
+      connectTimeoutRef.current = null;
+    }
     localStream?.getTracks().forEach((t) => t.stop());
+    localStreamRef.current = null;
     setLocalStream(null);
     setRemoteStream(null);
     setActiveCall(null);
@@ -122,12 +129,34 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setRemoteStream(e.streams[0]);
       };
       pc.onconnectionstatechange = () => {
+        if (pc.connectionState === 'connected' && connectTimeoutRef.current) {
+          clearTimeout(connectTimeoutRef.current);
+          connectTimeoutRef.current = null;
+        }
         if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
+          setCallError('Mất kết nối cuộc gọi (mạng không ổn định hoặc bị chặn).');
           cleanup();
         }
       };
       pcRef.current = pc;
       return pc;
+    },
+    [cleanup]
+  );
+
+  // Starts the "did the call actually connect" watchdog. Must be called once
+  // SDP signaling has completed (answer sent/received) — not at ring time —
+  // otherwise the time the user spends tapping accept / granting camera
+  // permission eats into the window before ICE even gets a chance to connect.
+  const armConnectTimeout = useCallback(
+    (pc: RTCPeerConnection) => {
+      if (connectTimeoutRef.current) clearTimeout(connectTimeoutRef.current);
+      connectTimeoutRef.current = setTimeout(() => {
+        if (pc.connectionState !== 'connected') {
+          setCallError('Không thể kết nối cuộc gọi. Vui lòng kiểm tra kết nối mạng và thử lại.');
+          cleanup();
+        }
+      }, 15000);
     },
     [cleanup]
   );
@@ -148,6 +177,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
           : false,
     });
     setLocalStream(stream);
+    localStreamRef.current = stream;
     return stream;
   };
 
@@ -164,6 +194,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
       getSocket().emit('call:answer-offer', { toUserId: peer.id, offer });
+      armConnectTimeout(pc);
     } catch (err) {
       setCallError(err instanceof Error ? err.message : 'Không thể bắt đầu cuộc gọi.');
       cleanup();
@@ -177,22 +208,23 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const offerData = pendingOfferRef.current;
     if (!pc || !offerData || !hasAcceptedRef.current || pc.currentRemoteDescription) return;
     await pc.setRemoteDescription(new RTCSessionDescription(offerData.offer));
+    localStreamRef.current?.getTracks().forEach((t) => pc.addTrack(t, localStreamRef.current!));
     for (const c of pendingCandidatesRef.current) await pc.addIceCandidate(new RTCIceCandidate(c));
     pendingCandidatesRef.current = [];
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
     getSocket().emit('call:answer', { toUserId: offerData.fromUserId, answer });
+    armConnectTimeout(pc);
     connectedAtRef.current = Date.now();
     setActiveCall((prev) => (prev ? { ...prev, status: 'connected' } : prev));
-  }, []);
+  }, [armConnectTimeout]);
 
   const acceptCall = async () => {
     const call = activeCallRef.current;
     if (!call || !currentUser) return;
     try {
-      const stream = await getLocalMedia(call.callType);
-      const pc = pcRef.current || createPeerConnection(call.peerUser.id);
-      stream.getTracks().forEach((t) => pc.addTrack(t, stream));
+      await getLocalMedia(call.callType);
+      if (!pcRef.current) createPeerConnection(call.peerUser.id);
       hasAcceptedRef.current = true;
       await tryCompleteAnswer();
     } catch (err) {
