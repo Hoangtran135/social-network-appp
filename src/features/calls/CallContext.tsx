@@ -137,7 +137,10 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: true,
-      video: callType === 'video',
+      video:
+        callType === 'video'
+          ? { width: { ideal: 480 }, height: { ideal: 360 }, frameRate: { ideal: 15, max: 20 } }
+          : false,
     });
     setLocalStream(stream);
     return stream;
