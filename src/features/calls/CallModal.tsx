@@ -48,8 +48,14 @@ export const CallModal: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-[100] bg-slate-950 flex flex-col items-center justify-between p-6">
-      {isVideo && status === 'connected' && (
-        <video ref={remoteVideoRef} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover" />
+      {isVideo && (
+        <video
+          ref={remoteVideoRef}
+          autoPlay
+          playsInline
+          muted
+          className={`absolute inset-0 w-full h-full object-cover ${status === 'connected' ? '' : 'opacity-0'}`}
+        />
       )}
       <audio ref={remoteAudioRef} autoPlay />
 
