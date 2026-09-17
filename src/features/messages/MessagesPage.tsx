@@ -512,16 +512,16 @@ export const MessagesPage: React.FC = () => {
           }`}
         >
           {/* Active Chat Header */}
-          <div className="h-16 px-4 bg-white border-b border-slate-200 flex items-center justify-between shrink-0 shadow-xs">
-            <div className="flex items-center gap-3">
+          <div className="h-16 px-3 sm:px-4 bg-white border-b border-slate-200 flex items-center justify-between gap-2 shrink-0 shadow-xs">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
               <button
                 onClick={() => navigate('/messages')}
-                className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 md:hidden"
+                className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 md:hidden shrink-0"
               >
                 <ArrowLeft className="w-5 h-5" />
               </button>
 
-              <div className="relative">
+              <div className="relative shrink-0">
                 <img
                   src={activeConversation.isGroup ? activeConversation.avatar : partner?.avatar}
                   alt={partner?.name}
@@ -532,9 +532,9 @@ export const MessagesPage: React.FC = () => {
                 )}
               </div>
 
-              <div>
-                <h3 className="font-bold text-sm text-slate-900 truncate flex items-center gap-1.5">
-                  <span>{activeConversation.isGroup ? activeConversation.name : partnerNickname || partner?.name}</span>
+              <div className="min-w-0">
+                <h3 className="font-bold text-sm text-slate-900 flex items-center gap-1.5 min-w-0">
+                  <span className="truncate">{activeConversation.isGroup ? activeConversation.name : partnerNickname || partner?.name}</span>
                   {partner?.isBot && (
                     <span className="px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-600 text-[9px] font-bold uppercase tracking-wide shrink-0">
                       AI
@@ -542,7 +542,7 @@ export const MessagesPage: React.FC = () => {
                   )}
                 </h3>
                 {!activeConversation.isGroup && !partner?.isBot && (
-                  <span className={`text-[11px] font-medium ${partner?.isOnline ? 'text-emerald-600' : 'text-slate-400'}`}>
+                  <span className={`block truncate text-[11px] font-medium ${partner?.isOnline ? 'text-emerald-600' : 'text-slate-400'}`}>
                     {partner?.isOnline
                       ? 'Đang hoạt động'
                       : partner?.lastActive
@@ -551,12 +551,12 @@ export const MessagesPage: React.FC = () => {
                   </span>
                 )}
                 {partner?.isBot && (
-                  <span className="text-[11px] font-medium text-indigo-500">Luôn sẵn sàng trả lời</span>
+                  <span className="block truncate text-[11px] font-medium text-indigo-500">Luôn sẵn sàng trả lời</span>
                 )}
               </div>
             </div>
 
-            <div className="flex items-center gap-1 text-slate-600">
+            <div className="flex items-center gap-1 text-slate-600 shrink-0">
               {!activeConversation.isGroup && partner && !partner.isBot && (
                 <>
                   <button
